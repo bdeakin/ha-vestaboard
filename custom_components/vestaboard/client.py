@@ -68,6 +68,7 @@ class VestaboardLocalClient:
         self.session = session or ClientSession()
         self.should_close = session is None
         self.data: list[list[int]] | None = None
+        self.firmware_version: str | None = None
 
     def __repr__(self):
         return f"{type(self).__name__}(base_url={self.base_url!r})"
@@ -112,6 +113,8 @@ class VestaboardLocalClient:
             headers={"X-Vestaboard-Local-Api-Key": self.api_key or ""},
             timeout=timeout,
         )
+        if not self.firmware_version and (server := resp.headers.get("Server")):
+            self.firmware_version = server.replace("Vestaboard/", "")
         if resp.status == 401 and (await resp.text()) == INVALID_API_KEY:
             raise InvalidApiKeyError(INVALID_API_KEY)
         resp.raise_for_status()
