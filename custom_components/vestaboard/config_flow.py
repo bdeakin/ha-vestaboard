@@ -135,6 +135,8 @@ class VestaboardConfigFlow(ConfigFlow, domain=DOMAIN):
                         entry,
                         data_updates={CONF_HOST: self.host},
                         reason="already_configured",
+                        unique_id=self.unique_id,
+                        reload_even_if_entry_is_unchanged=False,
                     )
             except asyncio.CancelledError:
                 raise
@@ -188,6 +190,9 @@ class VestaboardConfigFlow(ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             self.host = user_input[CONF_HOST]
+            if self.host == reconfigure_entry.data[CONF_HOST]:
+                return self.async_abort(reason="already_configured")
+
             self.api_key = reconfigure_entry.data[CONF_API_KEY]
             if not (
                 errors := await self.validate_client(
