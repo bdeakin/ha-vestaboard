@@ -191,7 +191,7 @@ class VestaboardConfigFlow(ConfigFlow, domain=DOMAIN):
             self.api_key = reconfigure_entry.data[CONF_API_KEY]
             if not (
                 errors := await self.validate_client(
-                    {CONF_API_KEY: self.api_key}, write=False
+                    {CONF_API_KEY: self.api_key}, write_connected_message=False
                 )
             ):
                 return self.async_update_reload_and_abort(
@@ -246,7 +246,7 @@ class VestaboardConfigFlow(ConfigFlow, domain=DOMAIN):
         return self.async_show_form(step_id=step_id, data_schema=schema, errors=errors)
 
     async def validate_client(
-        self, user_input: dict[str, Any], write: bool = True
+        self, user_input: dict[str, Any], write_connected_message: bool = True
     ) -> dict[str, str]:
         """Validate client setup."""
         errors = {}
@@ -257,7 +257,7 @@ class VestaboardConfigFlow(ConfigFlow, domain=DOMAIN):
             elif status == EndpointStatus.INVALID_API_KEY:
                 errors["base"] = "invalid_api_key"
             elif status == EndpointStatus.VALID:
-                if write:
+                if write_connected_message:
                     model = VestaboardModel.from_color(COLOR_BLACK, client.data)
                     message = (
                         VESTABOARD_CONNECTED_MESSAGE
@@ -290,7 +290,9 @@ class VestaboardConfigFlow(ConfigFlow, domain=DOMAIN):
                 ] == data.get(CONF_API_KEY):
                     if CONF_API_KEY not in data:
                         data[CONF_API_KEY] = entry.data[CONF_API_KEY]
-                    if not await self.validate_client(data, write=False):
+                    if not await self.validate_client(
+                        data, write_connected_message=False
+                    ):
                         return self.async_update_reload_and_abort(
                             entry,
                             unique_id=self.unique_id or entry.unique_id,

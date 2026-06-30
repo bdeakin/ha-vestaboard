@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+import asyncio
 from enum import StrEnum
 import json
 import logging
 
-from aiohttp import ClientResponse, ClientSession
+from aiohttp import ClientResponse, ClientResponseError, ClientSession
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -24,12 +25,12 @@ async def _parse_response(
     response: ClientResponse, key: str | None = None
 ) -> dict | str | list[list[int]] | None:
     """Parse response."""
+    raw = await response.text()
     try:
-        raw = await response.text()
         payload = json.loads(raw)
         return payload.get(key) if key else payload
     except json.JSONDecodeError:
-        _LOGGER.warning("Unable to parse response: %s", response)
+        _LOGGER.warning("Unable to parse response: %s", raw)
         return None
 
 
@@ -100,13 +101,16 @@ class VestaboardLocalClient:
 
         return api_key
 
-    async def read_message(self) -> list[list[int]] | None:
+    async def read_message(
+        self, *, check_enabled: bool = True, timeout: float | None = None
+    ) -> list[list[int]] | None:
         """Read the Vestaboard's current message."""
-        if not self.enabled:
+        if check_enabled and not self.enabled:
             raise RuntimeError("Local API has not been enabled")
         resp = await self.session.get(
             self.messaging_endpoint,
-            headers={"X-Vestaboard-Local-Api-Key": self.api_key},
+            headers={"X-Vestaboard-Local-Api-Key": self.api_key or ""},
+            timeout=timeout,
         )
         if resp.status == 401 and (await resp.text()) == INVALID_API_KEY:
             raise InvalidApiKeyError(INVALID_API_KEY)
@@ -116,7 +120,10 @@ class VestaboardLocalClient:
         return message
 
     async def write_message(
-        self, json: dict[str, str | int | list[list[int]]] | list[list[int]]
+        self,
+        json: dict[str, str | int | list[list[int]]] | list[list[int]],
+        *,
+        timeout: float | None = None,
     ) -> bool:
         """Write a message to the Vestaboard.
 
@@ -146,6 +153,7 @@ class VestaboardLocalClient:
             self.messaging_endpoint,
             headers={"X-Vestaboard-Local-Api-Key": self.api_key},
             json=payload,
+            timeout=timeout,
         )
         resp.raise_for_status()
         return resp.status == 201
@@ -153,23 +161,25 @@ class VestaboardLocalClient:
     async def check_endpoint(self) -> EndpointStatus:
         """Test the Vestaboard's endpoint to determine if it is a Vestaboard."""
         _LOGGER.debug("Checking endpoint %s", self.messaging_endpoint)
-        resp = await self.session.get(
-            self.messaging_endpoint,
-            headers={"X-Vestaboard-Local-Api-Key": self.api_key or ""},
-            timeout=5,
-        )
-        if resp.status == 200:
-            if not (message := await _parse_response(resp, "message")):
-                _LOGGER.warning(
-                    "Received 200 response with no message while attempting to read, attempting to write to the board for validation"
-                )
-                if not await self.write_message(message := [[0] * 22] * 6):
-                    return EndpointStatus.UNKNOWN
-            self.data = message
-            return EndpointStatus.VALID
-        if resp.status == 401 and (await resp.text()) == INVALID_API_KEY:
+        try:
+            message = await self.read_message(check_enabled=False, timeout=5)
+        except InvalidApiKeyError:
             return EndpointStatus.INVALID_API_KEY
-        return EndpointStatus.UNKNOWN
+        except ClientResponseError:
+            return EndpointStatus.UNKNOWN
+
+        if not message:
+            _LOGGER.warning(
+                "Received 200 response with no message while attempting to read, "
+                "attempting to write to the board for validation"
+            )
+            if not await self.write_message([[0]]):
+                return EndpointStatus.UNKNOWN
+            await asyncio.sleep(1)
+            message = await self.read_message(check_enabled=False, timeout=5)
+
+        self.data = message
+        return EndpointStatus.VALID
 
     async def close(self) -> None:
         """Close the underlying session if owned by the client."""
