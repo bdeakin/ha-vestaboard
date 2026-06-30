@@ -191,7 +191,7 @@ class VestaboardConfigFlow(ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             self.host = user_input[CONF_HOST]
             if self.host == reconfigure_entry.data[CONF_HOST]:
-                return self.async_abort(reason="no_changes")
+                return self.async_abort(reason="already_configured")
 
             self.api_key = reconfigure_entry.data[CONF_API_KEY]
             if not (
