@@ -31,6 +31,7 @@ class VestaboardEntity(CoordinatorEntity[VestaboardCoordinator]):
             name=entry.title,
             manufacturer="Vestaboard",
             model=coordinator.model.name if coordinator.model else "Vestaboard",
+            sw_version=coordinator.vestaboard.firmware_version,
         )
         if entry.unique_id:
             mac = format_mac(entry.unique_id)
