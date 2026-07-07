@@ -176,4 +176,4 @@ If you don't already own a Vestaboard, please consider using my referral link be
 
 ## 📈 Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=natekspencer/ha-vestaboard)](https://www.star-history.com/#natekspencer/ha-vestaboard)
+[![Star History Chart](https://api.star-history.com/chart?repos=natekspencer/ha-vestaboard&type=date&legend=top-left&sealed_token=S8oWvIEzE6WhaZ2TAACYrs6VDi3zcE9Jb3DR8rBwHwQZTwlUostTfvofcQvtvH_WX-vl8UexhG6X-i8-TLXCFo2RrDK_ChR4NIEPG1b8IbqngYFZgHd7ELpO7oqe0dMJObZP2pf_u_5G_FNXdg2FpRe4Altf74moTT_RSZEZP-08s1coJbz0f_9XZI3W)](https://www.star-history.com/?repos=natekspencer%2Fha-vestaboard)
