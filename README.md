@@ -87,11 +87,29 @@ After this integration is set up, you can configure the color of your Vestaboard
 | `justify`            | Justify                    | No       | Horizontal text alignment. Default: `center`. Options: `left`, `right`, `center`, `justified`.                                                                                    |
 | `align`              | Align                      | No       | Vertical text alignment. Default: `center`. Options: `top`, `bottom`, `center`, `justified`.                                                                                      |
 | `vbml`               | Vestaboard Markup Language | No       | Compose a static or dynamic message using [VBML](https://docs.vestaboard.com/docs/vbml). Overrides `message` when provided.                                                       |
-| `strategy`           | Transition Strategy        | No       | Animation style when a new message is sent. Options: `classic`, `column`, `reverse-column`, `edges-to-center`, `row`, `diagonal`, `random`.                                       |
+| `strategy`           | Transition Strategy        | No       | Animation style when a new message is sent. See [Transition Strategy](#transition-strategy) section below.                                                                        |
 | `step_size`          | Step Size                  | No       | Number of columns/rows/bits to animate simultaneously. Range: 1–132. Leave blank to animate one at a time.                                                                        |
 | `step_interval_ms`   | Step Interval              | No       | Delay (in milliseconds) between each animation step. Range: 1–3000 ms. Leave blank for immediate sequential activation.                                                           |
 | `duration`           | Duration                   | No       | Display the message temporarily for the specified duration (in seconds). The board reverts to its previous persistent message when the duration expires. Range: 10–43200 seconds. |
 | `bypass_quiet_hours` | Bypass Quiet Hours         | No       | If `true`, ignores quiet hours settings and sends the message immediately.                                                                                                        |
+
+#### Transition Strategy
+
+`strategy` accepts one of the following literal values. The "Display Name" column shows how each option is labeled in the UI, but is _not_ an acceptable value you can pass; only the `strategy` column values are valid.
+
+| `strategy`\* (accepted value) | Display Name (UI only)                  |
+| ----------------------------- | --------------------------------------- |
+| `classic`                     | Classic (all-at-once)                   |
+| `column`                      | Wave (left-to-right)                    |
+| `reverse-column`              | Drift (right-to-left)                   |
+| `edges-to-center`             | Curtain (outside-in, meeting in center) |
+| `row`                         | Row (top-to-bottom)                     |
+| `diagonal`                    | Diagonal (top-left to bottom-right)     |
+| `random`\*\*                  | Random bits                             |
+
+\* Applies to all strategies except `classic`: every bit animates on each transition, regardless of whether the character is changing.
+
+\*\* The `random` strategy animates individual bits rather than full rows/columns, with a delay of several seconds (up to 10) between each step. A transition must fully complete before a new message can be displayed, so a small `step_size` means many more steps are needed to animate the full board. On a Flagship Vestaboard (132 bits), this can add up to several minutes before the board accepts a new message.
 
 ---
 
