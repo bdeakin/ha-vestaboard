@@ -2,7 +2,7 @@
 
 ## Product intent
 
-Personal fork (**Vestaboard-x**) to make Vestaboard VBML layouts authorable from Home Assistant Automations / Developer Tools without writing escaped JSON. Users should reference sensors directly and set alignment/formatting per board region. Do not include upstream sponsorship/referral sections in the README. Branding is a black V on a white background.
+Personal fork (**Vestaboard-x**) configured to display Stern Insider Connected pinball scores on a Vestaboard, and more generally to make VBML layouts authorable from Home Assistant without writing escaped JSON. Users should reference sensors directly and set alignment/formatting per board region. Do not include upstream sponsorship/referral sections in the README; do credit Cursor. Branding is a black V on a white background.
 
 ## Constraints honored
 
@@ -12,6 +12,8 @@ Personal fork (**Vestaboard-x**) to make Vestaboard VBML layouts authorable from
 - Priority: `vbml` > `components`/`props` > `message`.
 - Seed templates for each Stern 2026 game with its leaderboard sensors; corner-dot layout; `player`/`score` props; `TOP SCORE` + `#,##0K`.
 - Support multiple saved game templates and one-click copy of automation YAML (`props` + `vbml`).
+- Prefer a dedicated `vestaboard.send_template` action with a dynamic Template dropdown sourced from the panel Store, so automations do not require pasting VBML.
+- Prop resolution: non-empty Jinja `template` wins; blank `template` must fall through to `entity_id` (player name sensors).
 
 ## Future prompts
 

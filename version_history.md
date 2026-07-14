@@ -1,5 +1,15 @@
 # Version history
 
+## 0.6.1
+
+- Fix empty `template: ""` on entity-backed props (e.g. player name) skipping `entity_id` resolution, which left VBML `player` blank in the editor and on the board.
+- README positions the fork around Stern Insider Connected pinball scores and credits Cursor.
+
+## 0.6.0
+
+- Add `vestaboard.send_template` action: pick a Vestaboard-x panel template from a dropdown and send it (props resolved live) without pasting VBML.
+- Template select options refresh when templates are saved or deleted in the panel.
+
 ## 0.5.2
 
 - Seed VBML templates for all Stern 2026 leaderboard games with their `top_player` / `top_score` entities (shared `player`/`score` props, corner-dot layout, per-game accent color).

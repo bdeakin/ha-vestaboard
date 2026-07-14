@@ -286,3 +286,76 @@ message:
       description: Ignore quiet hours setting and send the message to the Vestaboard.
       selector:
         boolean:
+
+send_template:
+  name: Send saved template
+  description: >
+    Send a VBML layout saved in the Vestaboard-x panel (for example a Stern
+    game top-score board). Choose the template from the dropdown — no need to
+    paste VBML into the automation.
+  fields:
+    device_id:
+      name: Device
+      description: Vestaboard to send the message to.
+      required: true
+      selector:
+        device:
+          integration: vestaboard
+          multiple: true
+      example: device_id
+    template_id:
+      name: Template
+      description: >
+        Saved template from the Vestaboard-x panel. Options refresh when
+        templates are saved or deleted in the panel.
+      required: true
+      selector:
+        select:
+          mode: dropdown
+          options: []
+    strategy:
+      name: Transition strategy
+      description: Animation style when a new message is sent. Leave blank to use the default for each Vestaboard.
+      selector:
+        select:
+          translation_key: "strategy"
+          options:
+            - classic
+            - column
+            - reverse-column
+            - edges-to-center
+            - row
+            - diagonal
+            - random
+      example: column
+    step_size:
+      name: Step size
+      description: Number of columns/rows/bits to animate at the same time. Leave blank to animate one at a time.
+      selector:
+        number:
+          min: 1
+          max: 132
+          unit_of_measurement: columns/rows/bits
+      example: 2
+    step_interval_ms:
+      name: Step interval
+      description: Delay between starting each animation step. Leave blank for immediate sequential activation.
+      selector:
+        number:
+          min: 1
+          max: 3000
+          unit_of_measurement: milliseconds
+      example: 500
+    duration:
+      name: Duration
+      description: Display the message temporarily. The board will revert to its previous persistent message after the duration expires.
+      selector:
+        number:
+          min: 10
+          max: 43200
+          unit_of_measurement: seconds
+    bypass_quiet_hours:
+      name: Bypass quiet hours
+      description: Ignore quiet hours setting and send the message to the Vestaboard.
+      selector:
+        boolean:

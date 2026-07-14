@@ -2,7 +2,7 @@
 
 ## Overview
 
-`vestaboard` is a HACS Home Assistant integration that talks to Vestaboard displays over the Local API. This fork keeps the upstream device/client/coordinator stack and extends the `vestaboard.message` action so layouts can be built from HA entities without authoring raw VBML JSON.
+`vestaboard` is a HACS Home Assistant integration that talks to Vestaboard displays over the Local API. This fork keeps the upstream device/client/coordinator stack and extends it for Stern Insider Connected pinball scoreboards: structured props/components, a Vestaboard-x template panel, and `send_template` automation actions — so layouts can be built from HA entities without authoring raw VBML JSON.
 
 ```text
 Sidebar: Vestaboard-x panel
@@ -10,22 +10,26 @@ Sidebar: Vestaboard-x panel
   ├─ props builder
   └─ VBML modal (highlight + validate + drag/drop props)
         │  websocket: templates CRUD / validate_vbml / resolve_props
-        │  copy YAML → Automations
+        │  refresh send_template action dropdown on save/delete
         ▼
 Developer Tools / Automation UI
         │
-        ▼
-vestaboard.message
-  ├─ message (+ justify/align)     → single-component VBML
-  ├─ props + components            → resolve HA → VBML props + styled regions
-  └─ vbml (advanced)               → passthrough object
-        │
-        ▼
-VestaboardModel.parse_vbml (pyvbml)
-        │
-        ▼
-VestaboardCoordinator → Local API write + image entities
+        ├─ vestaboard.send_template  → load Store template by id → resolve props → VBML
+        └─ vestaboard.message
+              ├─ message (+ justify/align)     → single-component VBML
+              ├─ props + components            → resolve HA → VBML props + styled regions
+              └─ vbml (advanced)               → passthrough object
+                    │
+                    ▼
+            VestaboardModel.parse_vbml (pyvbml)
+                    │
+                    ▼
+            VestaboardCoordinator → Local API write + image entities
 ```
+
+### `send_template`
+
+Loads a named template from `vestaboard_templates` by `template_id` (or exact name), merges resolved props into the saved VBML, and reuses the same delivery path as `message` (transitions, duration, quiet hours). The automation UI select options are set via `async_set_service_schema` and refreshed after panel template save/delete.
 
 ## Message composition
 
@@ -39,10 +43,10 @@ VestaboardCoordinator → Local API write + image entities
 
 Each prop requires a `name` and either:
 
-1. `template` — Home Assistant Jinja (`Template.async_render`), or
+1. Non-empty `template` — Home Assistant Jinja (`Template.async_render`), or
 2. `entity_id` — entity state, optionally an `attribute`
 
-Resolved values are stringified and injected as VBML `props` so component templates can use `{{name}}` without Jinja escaping conflicts.
+Blank/whitespace `template` values are ignored so entity-backed props still resolve. Resolved values are stringified and injected as VBML `props` so component templates can use `{{name}}` without Jinja escaping conflicts.
 
 ### Component normalization
 

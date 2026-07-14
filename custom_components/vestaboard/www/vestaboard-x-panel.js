@@ -57,7 +57,7 @@ class VestaboardXPanel extends HTMLElement {
         name: "player",
         entity_id:
           "sensor.2026_leaderboard_elvira_s_house_of_horrors_top_player",
-        template: "",
+        template: "", // UI field only; blank templates are omitted on save/resolve
       },
       {
         name: "score",
@@ -1053,7 +1053,7 @@ class VestaboardXPanel extends HTMLElement {
     this.shadowRoot.innerHTML = `
       <style>${this._styles()}</style>
       <h1>Vestaboard-x</h1>
-      <p class="lead">Save a VBML template per game, then copy YAML into a <code>vestaboard.message</code> automation.</p>
+      <p class="lead">Save a VBML template per game, then use the <code>vestaboard.send_template</code> action (template dropdown) in an automation — or copy YAML if you need a custom <code>vestaboard.message</code>.</p>
       <div class="card">
         <label for="device">Device</label>
         <select id="device">
@@ -1083,8 +1083,9 @@ class VestaboardXPanel extends HTMLElement {
           <button type="button" id="copy-automation">Copy for automation</button>
         </div>
         <p class="hint" style="margin-top:10px;">
-          Copy produces <code>action: vestaboard.message</code> YAML with live <code>props</code> + <code>vbml</code>.
-          Duplicate a game template with <strong>Save as new</strong>, then swap entities and title text.
+          Preferred: Automations → <code>vestaboard.send_template</code> and pick this template from the dropdown
+          (no paste). Copy still produces <code>vestaboard.message</code> YAML with live <code>props</code> + <code>vbml</code>.
+          Duplicate a game with <strong>Save as new</strong>, then swap entities and title text.
         </p>
       </div>
       <div class="card">

@@ -122,6 +122,10 @@
     "message": {
       "name": "Send message",
       "description": "Send a message to Vestaboard-x using plain text, structured components with Home Assistant props, or raw VBML."
+    },
+    "send_template": {
+      "name": "Send saved template",
+      "description": "Send a VBML layout saved in the Vestaboard-x panel (for example a game top-score board) by picking it from a dropdown."
     }
   }
 }

@@ -33,6 +33,7 @@ CONF_STEP_INTERVAL_MS: Final = "step_interval_ms"
 CONF_STEP_SIZE: Final = "step_size"
 CONF_STRATEGY: Final = "strategy"
 CONF_TEMPLATE: Final = "template"
+CONF_TEMPLATE_ID: Final = "template_id"
 CONF_TRANSITIONS: Final = (
     "classic",
     "column",
@@ -53,3 +54,4 @@ COLOR_BLACK: Final = "black"
 COLOR_WHITE: Final = "white"
 
 SERVICE_MESSAGE: Final = "message"
+SERVICE_SEND_TEMPLATE: Final = "send_template"

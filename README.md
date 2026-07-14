@@ -7,7 +7,16 @@
 
 Home Assistant integration for Vestaboard messaging displays (**Vestaboard-x**).
 
-This is a personal fork of [natekspencer/ha-vestaboard](https://github.com/natekspencer/ha-vestaboard). It exists to make generating VBML more intuitive—especially when including live Home Assistant sensors—by letting you pick entities/templates as props and compose board regions with per-component alignment and sizing, without hand-writing escaped JSON.
+This is a personal fork of [natekspencer/ha-vestaboard](https://github.com/natekspencer/ha-vestaboard), tailored specifically to help **display Stern Insider Connected pinball scores** on a Vestaboard — top player and top score for each Stern 2026 leaderboard game, driven by live Home Assistant sensors from your Stern Insider Connected setup.
+
+Beyond the upstream Local API integration, this fork adds:
+
+- An intuitive **Vestaboard-x** sidebar panel for authoring VBML (props from sensors/Jinja, syntax highlighting, validation, drag-and-drop placeholders)
+- A **named template library** seeded for all eight Stern 2026 leaderboard games (corner-dot layouts with per-game accent colors)
+- A **`vestaboard.send_template`** automation action with a dropdown of those saved templates — no copy-pasting VBML
+- Structured `props` / `components` on `vestaboard.message` so layouts stay live with sensor values
+
+Built with [Cursor](https://cursor.com) — thank you, Cursor.
 
 ## Local API Access Required
 
@@ -67,15 +76,40 @@ After this integration is set up, you can configure the color of your Vestaboard
 
 After installing and restarting, open **Vestaboard-x** in the Home Assistant sidebar.
 
-- Save **multiple named templates** (one per game). All eight Stern 2026 leaderboard games are seeded with their sensors — edit, copy YAML, or save your own variants.
+- Save **multiple named templates** (one per game). All eight Stern 2026 leaderboard games are seeded with their sensors — edit, automate, or save your own variants.
 - Add **props** (entity ID and/or Jinja template)
 - Open the **VBML editor** modal for syntax-colored JSON
 - Drag (or click) props into the markup to insert `{{prop_name}}`
 - Live validation: editor border turns green when VBML is valid, red when invalid (JSON + schema + optional device parse)
-- **Copy for automation** places a ready-to-paste `vestaboard.message` YAML block on the clipboard (`props` + `vbml`). At send time, props are resolved and merged into the VBML payload so sensor values stay live.
+- Use **`vestaboard.send_template`** in automations to pick a saved template from a dropdown (no copy-paste). **Copy for automation** remains available for raw `vestaboard.message` YAML (`props` + `vbml`).
 - Send the message to a selected board from the panel
 
 ## Actions
+
+### `vestaboard.send_template` - Send a saved panel template
+
+[![Open your Home Assistant instance and show your service developer tools with a specific action selected.](https://my.home-assistant.io/badges/developer_call_service.svg)](https://my.home-assistant.io/redirect/developer_call_service/?service=vestaboard.send_template)
+
+Best path for top-score boards: save/edit the layout in the Vestaboard-x panel, then in an automation choose **Send saved template** and select the game from the **Template** dropdown. The service loads that template’s VBML and props, resolves live sensor values, and sends to the board.
+
+| Field                | Name                 | Required | Description |
+| -------------------- | -------------------- | -------- | ----------- |
+| `device_id`          | Device               | Yes      | Vestaboard device(s) to send to. |
+| `template_id`        | Template             | Yes      | Saved panel template (dropdown options refresh when templates change). |
+| `strategy`           | Transition Strategy  | No       | Animation style. Leave blank to use the device default. |
+| `step_size`          | Step Size            | No       | Columns/rows/bits to animate together. Range: 1–132. |
+| `step_interval_ms`   | Step Interval        | No       | Delay between animation steps in ms. Range: 1–3000. |
+| `duration`           | Duration             | No       | Temporary display duration in seconds (10–43200). |
+| `bypass_quiet_hours` | Bypass Quiet Hours   | No       | If `true`, ignore quiet hours and send immediately. |
+
+Example:
+
+```yaml
+action: vestaboard.send_template
+data:
+  device_id: YOUR_DEVICE_ID
+  template_id: elvira-house-of-horrors   # value from the Template dropdown
+```
 
 ### `vestaboard.message` - Send a message to one or more Vestaboards
 
@@ -114,7 +148,7 @@ Each component supports:
 **Props** each have a `name`, plus either:
 
 - `entity_id` (optional `attribute`), or
-- `template` (Home Assistant Jinja; wins when both are set)
+- `template` (Home Assistant Jinja; non-empty template wins over `entity_id`; blank template is ignored)
 
 ##### Example — single game (title / player / score)
 

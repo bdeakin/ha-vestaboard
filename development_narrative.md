@@ -24,7 +24,7 @@ Fork lives at `/Users/bdeakin/Documents/Cursor/ha-vestaboard` as a sibling proje
 
 ## README tone
 
-Framed as a personal fork for improving intuitive VBML + sensor authoring. Removed upstream support/referral copy from the README.
+Framed as a personal fork configured specifically to display Stern Insider Connected pinball scores on a Vestaboard, with the added panel/templates/`send_template` workflow called out. Credits Cursor. Removed upstream support/referral copy from the README.
 
 ## Branding
 
@@ -36,4 +36,6 @@ Upstream uses `zip_release` + `vestaboard.zip` on GitHub Releases. This fork shi
 
 ## VBML modal panel
 
-Native action selectors cannot host syntax highlighting or drag-and-drop, so a sidebar panel provides a pop-out VBML modal: JSON color coding, websocket-backed validation, and prop chips that insert `{{name}}` into templates. Defaults seed eight Stern 2026 game templates (corner dots, title, player, `TOP SCORE` + `#,##0K`) wired to each game's leaderboard sensors. The panel persists templates and can copy automation YAML with live props merged into VBML.
+Native action selectors cannot host syntax highlighting or drag-and-drop, so a sidebar panel provides a pop-out VBML modal: JSON color coding, websocket-backed validation, and prop chips that insert `{{name}}` into templates. Defaults seed eight Stern 2026 game templates (corner dots, title, player, `TOP SCORE` + `#,##0K`) wired to each game's leaderboard sensors. The panel persists templates; automations use `vestaboard.send_template` with a dropdown of those templates (schema refreshed on save/delete) so top-score boards do not require copying VBML. Copy-for-automation YAML remains for ad-hoc `vestaboard.message` cases.
+
+Empty prop `template` strings (from seeded player props) briefly broke resolution by winning over `entity_id`; resolve now treats blank templates as absent.

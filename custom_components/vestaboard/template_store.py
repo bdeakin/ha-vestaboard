@@ -54,7 +54,6 @@ def _game_template(
             {
                 "name": "player",
                 "entity_id": player_entity,
-                "template": "",
             },
             {
                 "name": "score",
@@ -236,6 +235,25 @@ def _uses_legacy_elvira_prop_names(props: list[dict[str, Any]] | None) -> bool:
     return "elvira_player" in names or "elvira_score" in names
 
 
+def _normalize_prop_defs(props: list[dict[str, Any]] | None) -> list[dict[str, Any]]:
+    """Drop blank template fields so entity_id resolution is not skipped."""
+    cleaned: list[dict[str, Any]] = []
+    for prop in props or []:
+        item = dict(prop)
+        if not str(item.get("template") or "").strip():
+            item.pop("template", None)
+        cleaned.append(item)
+    return cleaned
+
+
+def _props_have_blank_templates(props: list[dict[str, Any]] | None) -> bool:
+    """Return True if any prop carries an empty/whitespace template string."""
+    for prop in props or []:
+        if "template" in prop and not str(prop.get("template") or "").strip():
+            return True
+    return False
+
+
 async def async_load_templates(hass: HomeAssistant) -> list[dict[str, Any]]:
     """Load templates, seeding defaults and merging any missing built-ins."""
     store = async_get_store(hass)
@@ -268,6 +286,16 @@ async def async_load_templates(hass: HomeAssistant) -> list[dict[str, Any]]:
                 "props": seed_copy["props"],
                 "vbml": seed_copy["vbml"],
                 "updated_at": _utc_now_iso(),
+            }
+            changed = True
+
+    # Strip legacy empty template: "" that blocked entity prop resolution
+    for index, item in enumerate(templates):
+        props = item.get("props")
+        if _props_have_blank_templates(props):
+            templates[index] = {
+                **item,
+                "props": _normalize_prop_defs(props),
             }
             changed = True
 
@@ -337,3 +365,14 @@ async def async_delete_template(hass: HomeAssistant, template_id: str) -> None:
     if len(filtered) == len(templates):
         raise ValueError(f"Unknown template id: {template_id}")
     await async_save_templates(hass, filtered)
+
+
+async def async_get_template(
+    hass: HomeAssistant, template_id: str
+) -> dict[str, Any] | None:
+    """Return a template by id or exact name."""
+    needle = template_id.strip()
+    for item in await async_load_templates(hass):
+        if item.get("id") == needle or str(item.get("name", "")) == needle:
+            return item
+    return None
