@@ -65,6 +65,7 @@ UI fields (`justify`, `align`, `height`, `width`, `x`, `y`) become a VBML `style
 - Registered at `/vestaboard_static/` + sidebar path `vestaboard-x`
 - Shared schema: `vbml_schema.py` used by services and websocket validation
 - Default editor VBML: Elvira's House of Horrors (corner black/red dots, title, player, `TOP SCORE` + K-formatted score)
+- Seeded templates also include a rainbow **High Scores Intro** (`rawCharacters` perimeter + location prop)
 - Templates persisted via `helpers.storage` key `vestaboard_templates`
 
 ## Branding

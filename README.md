@@ -76,7 +76,7 @@ After this integration is set up, you can configure the color of your Vestaboard
 
 After installing and restarting, open **Vestaboard-x** in the Home Assistant sidebar.
 
-- Save **multiple named templates** (one per game). All eight Stern 2026 leaderboard games are seeded with their sensors — edit, automate, or save your own variants.
+- Save **multiple named templates**. Seeded: a rainbow **High Scores Intro** (`NOW DISPLAYING HIGH SCORES FOR` + location) plus all eight Stern 2026 leaderboard games — edit, automate, or save your own variants.
 - Add **props** (entity ID and/or Jinja template)
 - Open the **VBML editor** modal for syntax-colored JSON
 - Drag (or click) props into the markup to insert `{{prop_name}}`
@@ -206,7 +206,7 @@ data:
       y: 5
 ```
 
-The panel ships saved templates for every Stern 2026 leaderboard game (D&D, Elvira, Godzilla, Jaws, John Wick, Jurassic Park, Pokemon, X-Men), each wired to its `top_player` / `top_score` sensors.
+The panel ships a rainbow **High Scores Intro** (location from `sensor.2026_leaderboard_location`) plus saved templates for every Stern 2026 leaderboard game (D&D, Elvira, Godzilla, Jaws, John Wick, Jurassic Park, Pokemon, X-Men), each wired to its `top_player` / `top_score` sensors.
 
 #### Transition Strategy
 

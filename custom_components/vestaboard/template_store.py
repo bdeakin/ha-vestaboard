@@ -35,6 +35,68 @@ def _score_k_template(entity_id: str) -> str:
     )
 
 
+def _rainbow_border_raw() -> list[list[int]]:
+    """Wrap-around rainbow frame matching Vestaboard's welcome-board style.
+
+    Colors progress linearly around the perimeter, starting and ending at the
+    bottom-left corner (violet → red → orange → yellow → green → blue → violet).
+    """
+    red, orange, yellow = COLOR_RED, COLOR_ORANGE, COLOR_YELLOW
+    green, blue, violet = COLOR_GREEN, COLOR_BLUE, COLOR_VIOLET
+    board = [[0] * 22 for _ in range(6)]
+    # Top: red → orange → yellow
+    board[0] = [red] * 6 + [orange] * 9 + [yellow] * 7
+    # Bottom (LTR): violet → blue → green  (clockwise ends returning to BL)
+    board[5] = [violet] * 7 + [blue] * 8 + [green] * 7
+    # Sides (corners already set by top/bottom rows)
+    for y in (1, 2):
+        board[y][0] = red
+        board[y][21] = yellow
+    for y in (3, 4):
+        board[y][0] = violet
+        board[y][21] = green
+    return board
+
+
+def _high_scores_intro_template() -> dict[str, Any]:
+    """Rainbow intro: NOW DISPLAYING HIGH SCORES FOR {{location}}."""
+    location_entity = "sensor.2026_leaderboard_location"
+    return {
+        "id": "high-scores-intro",
+        "name": "High Scores Intro",
+        "props": [
+            {
+                "name": "location",
+                "entity_id": location_entity,
+            },
+        ],
+        "vbml": {
+            "props": {},
+            "components": [
+                {
+                    "style": {
+                        "height": 6,
+                        "width": 22,
+                        "absolutePosition": {"x": 0, "y": 0},
+                    },
+                    "rawCharacters": _rainbow_border_raw(),
+                },
+                {
+                    "style": {
+                        "justify": "center",
+                        "align": "top",
+                        "height": 3,
+                        "width": 20,
+                        "absolutePosition": {"x": 1, "y": 2},
+                    },
+                    "template": "NOW DISPLAYING\nHIGH SCORES FOR\n{{location}}",
+                },
+            ],
+        },
+        "updated_at": "1970-01-01T00:00:00+00:00",
+    }
+
+
 def _game_template(
     *,
     template_id: str,
@@ -141,6 +203,7 @@ def _game_template(
 
 
 DEFAULT_TEMPLATES: list[dict[str, Any]] = [
+    _high_scores_intro_template(),
     _game_template(
         template_id="dungeons-dragons",
         name="Dungeons & Dragons",

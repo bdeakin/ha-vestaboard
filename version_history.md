@@ -1,5 +1,9 @@
 # Version history
 
+## 0.6.2
+
+- Add seeded **High Scores Intro** template: rainbow perimeter (welcome-board style) with `NOW DISPLAYING` / `HIGH SCORES FOR` / location from `sensor.2026_leaderboard_location`.
+
 ## 0.6.1
 
 - Fix empty `template: ""` on entity-backed props (e.g. player name) skipping `entity_id` resolution, which left VBML `player` blank in the editor and on the board.
