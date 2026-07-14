@@ -76,7 +76,7 @@ After this integration is set up, you can configure the color of your Vestaboard
 
 After installing and restarting, open **Vestaboard-x** in the Home Assistant sidebar.
 
-- Save **multiple named templates**. Seeded: a rainbow **High Scores Intro** (`NOW DISPLAYING HIGH SCORES FOR` + location) plus all eight Stern 2026 leaderboard games — edit, automate, or save your own variants.
+- Save **multiple named templates**. Seeded first: rainbow **Location Announcement** (`NOW DISPLAYING HIGH SCORES FOR` + location), then all eight Stern 2026 leaderboard games — edit, automate, or save your own variants.
 - Add **props** (entity ID and/or Jinja template)
 - Open the **VBML editor** modal for syntax-colored JSON
 - Drag (or click) props into the markup to insert `{{prop_name}}`
@@ -162,8 +162,8 @@ data:
     - name: score
       entity_id: sensor.2026_leaderboard_elvira_s_house_of_horrors_top_score
       template: >-
-        {{ '{:,.0f}K'.format((states('sensor.2026_leaderboard_elvira_s_house_of_horrors_top_score')
-        | float(0) / 1000)) }}
+        {{ '{:,.0f}'.format(states('sensor.2026_leaderboard_elvira_s_house_of_horrors_top_score')
+        | float(0)) }}
   components:
     # Corner accents: {70}=black, {63}=red (other games use different accent colors)
     - template: "{70}"
@@ -188,7 +188,13 @@ data:
       width: 22
       x: 0
       y: 3
-    - template: "TOP SCORE {{score}}"
+    - template: "TOP SCORE"
+      justify: center
+      height: 1
+      width: 22
+      x: 0
+      y: 4
+    - template: "{{score}}"
       justify: center
       height: 1
       width: 20
@@ -206,7 +212,7 @@ data:
       y: 5
 ```
 
-The panel ships a rainbow **High Scores Intro** (location from `sensor.2026_leaderboard_location`) plus saved templates for every Stern 2026 leaderboard game (D&D, Elvira, Godzilla, Jaws, John Wick, Jurassic Park, Pokemon, X-Men), each wired to its `top_player` / `top_score` sensors.
+The panel ships a rainbow **Location Announcement** (location from `sensor.2026_leaderboard_location`) plus saved templates for every Stern 2026 leaderboard game (D&D, Elvira, Godzilla, Jaws, John Wick, Jurassic Park, Pokemon, X-Men), each wired to its `top_player` / `top_score` sensors.
 
 #### Transition Strategy
 

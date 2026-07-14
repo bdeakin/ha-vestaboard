@@ -77,7 +77,7 @@ message:
           entity_id: sensor.2026_leaderboard_elvira_s_house_of_horrors_top_player
         - name: score
           entity_id: sensor.2026_leaderboard_elvira_s_house_of_horrors_top_score
-          template: "{{ '{:,.0f}K'.format((states('sensor.2026_leaderboard_elvira_s_house_of_horrors_top_score') | float(0) / 1000)) }}"
+          template: "{{ '{:,.0f}'.format(states('sensor.2026_leaderboard_elvira_s_house_of_horrors_top_score') | float(0)) }}"
     components:
       name: Components
       description: >-

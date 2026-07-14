@@ -1,8 +1,14 @@
 # Version history
 
+## 0.6.3
+
+- Display game scores as the full number with commas (e.g. `1,233,532,321`) instead of thousands/`K`.
+- Split game boards so `TOP SCORE` and the score value sit on separate rows (full scores are too wide for one line).
+- Ensure the rainbow **Location Announcement** template is always present first in Saved Templates (migrates legacy `high-scores-intro` id/name).
+
 ## 0.6.2
 
-- Add seeded **High Scores Intro** template: rainbow perimeter (welcome-board style) with `NOW DISPLAYING` / `HIGH SCORES FOR` / location from `sensor.2026_leaderboard_location`.
+- Add seeded **Location Announcement** / High Scores Intro template: rainbow perimeter (welcome-board style) with `NOW DISPLAYING` / `HIGH SCORES FOR` / location from `sensor.2026_leaderboard_location`.
 
 ## 0.6.1
 

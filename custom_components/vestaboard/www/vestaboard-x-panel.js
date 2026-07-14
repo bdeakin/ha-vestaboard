@@ -43,9 +43,9 @@ class VestaboardXPanel extends HTMLElement {
     this._rendered = true;
   }
 
-  _scoreKTemplate(entityId) {
-    // Format like #,##0"K" — thousands with comma separators + K suffix
-    return `{{ '{:,.0f}K'.format((states('${entityId}') | float(0) / 1000)) }}`;
+  _scoreCommaTemplate(entityId) {
+    // Full score with thousands separators, e.g. 1,233,532,321
+    return `{{ '{:,.0f}'.format(states('${entityId}') | float(0)) }}`;
   }
 
   _defaultProps() {
@@ -62,13 +62,13 @@ class VestaboardXPanel extends HTMLElement {
       {
         name: "score",
         entity_id: scoreEntity,
-        template: this._scoreKTemplate(scoreEntity),
+        template: this._scoreCommaTemplate(scoreEntity),
       },
     ];
   }
 
   _defaultVbml() {
-    // Flagship 6x22 — corner dots, title, player, TOP SCORE
+    // Flagship 6x22 — corner dots, title, player, TOP SCORE, full score
     // {63}=red, {70}=black
     return JSON.stringify(
       {
@@ -119,10 +119,20 @@ class VestaboardXPanel extends HTMLElement {
               justify: "center",
               align: "top",
               height: 1,
+              width: 22,
+              absolutePosition: { x: 0, y: 4 },
+            },
+            template: "TOP SCORE",
+          },
+          {
+            style: {
+              justify: "center",
+              align: "top",
+              height: 1,
               width: 20,
               absolutePosition: { x: 1, y: 5 },
             },
-            template: "TOP SCORE {{score}}",
+            template: "{{score}}",
           },
           {
             style: {
@@ -1053,7 +1063,7 @@ class VestaboardXPanel extends HTMLElement {
     this.shadowRoot.innerHTML = `
       <style>${this._styles()}</style>
       <h1>Vestaboard-x</h1>
-      <p class="lead">Save a VBML template per game, then use the <code>vestaboard.send_template</code> action (template dropdown) in an automation — or copy YAML if you need a custom <code>vestaboard.message</code>.</p>
+      <p class="lead">Saved templates include the rainbow <strong>Location Announcement</strong> and each Stern game board. Use <code>vestaboard.send_template</code> in automations, or copy YAML for a custom <code>vestaboard.message</code>.</p>
       <div class="card">
         <label for="device">Device</label>
         <select id="device">
@@ -1083,9 +1093,10 @@ class VestaboardXPanel extends HTMLElement {
           <button type="button" id="copy-automation">Copy for automation</button>
         </div>
         <p class="hint" style="margin-top:10px;">
-          Preferred: Automations → <code>vestaboard.send_template</code> and pick this template from the dropdown
-          (no paste). Copy still produces <code>vestaboard.message</code> YAML with live <code>props</code> + <code>vbml</code>.
-          Duplicate a game with <strong>Save as new</strong>, then swap entities and title text.
+          Preferred: Automations → <code>vestaboard.send_template</code> and pick a template from the dropdown
+          (no paste). <strong>Location Announcement</strong> is the rainbow
+          <code>NOW DISPLAYING HIGH SCORES FOR</code> board. Duplicate a game with
+          <strong>Save as new</strong>, then swap entities and title text.
         </p>
       </div>
       <div class="card">

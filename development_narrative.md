@@ -36,8 +36,8 @@ Upstream uses `zip_release` + `vestaboard.zip` on GitHub Releases. This fork shi
 
 ## VBML modal panel
 
-Native action selectors cannot host syntax highlighting or drag-and-drop, so a sidebar panel provides a pop-out VBML modal: JSON color coding, websocket-backed validation, and prop chips that insert `{{name}}` into templates. Defaults seed eight Stern 2026 game templates (corner dots, title, player, `TOP SCORE` + `#,##0K`) wired to each game's leaderboard sensors. The panel persists templates; automations use `vestaboard.send_template` with a dropdown of those templates (schema refreshed on save/delete) so top-score boards do not require copying VBML. Copy-for-automation YAML remains for ad-hoc `vestaboard.message` cases.
+Native action selectors cannot host syntax highlighting or drag-and-drop, so a sidebar panel provides a pop-out VBML modal: JSON color coding, websocket-backed validation, and prop chips that insert `{{name}}` into templates. Defaults seed eight Stern 2026 game templates (corner dots, title, player, `TOP SCORE`, then a full comma-formatted score) wired to each game's leaderboard sensors. The panel persists templates; automations use `vestaboard.send_template` with a dropdown of those templates (schema refreshed on save/delete) so top-score boards do not require copying VBML. Copy-for-automation YAML remains for ad-hoc `vestaboard.message` cases.
 
 Empty prop `template` strings (from seeded player props) briefly broke resolution by winning over `entity_id`; resolve now treats blank templates as absent.
 
-Added a rainbow **High Scores Intro** template in the Vestaboard welcome-board style (`NOW DISPLAYING` / `HIGH SCORES FOR` / location), with color blocks progressing linearly around the perimeter from the bottom-left corner.
+Added a rainbow **Location Announcement** template in the Vestaboard welcome-board style (`NOW DISPLAYING` / `HIGH SCORES FOR` / location), listed first in Saved Templates, with color blocks progressing linearly around the perimeter from the bottom-left corner.

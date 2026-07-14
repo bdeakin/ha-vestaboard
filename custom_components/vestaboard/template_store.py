@@ -27,11 +27,12 @@ COLOR_WHITE = 69
 COLOR_BLACK = 70
 
 
-def _score_k_template(entity_id: str) -> str:
+def _score_comma_template(entity_id: str) -> str:
+    """Format the full score with thousands separators (e.g. 1,233,532,321)."""
     return (
-        "{{ '{:,.0f}K'.format((states('"
+        "{{ '{:,.0f}'.format(states('"
         + entity_id
-        + "') | float(0) / 1000)) }}"
+        + "') | float(0)) }}"
     )
 
 
@@ -58,12 +59,15 @@ def _rainbow_border_raw() -> list[list[int]]:
     return board
 
 
-def _high_scores_intro_template() -> dict[str, Any]:
-    """Rainbow intro: NOW DISPLAYING HIGH SCORES FOR {{location}}."""
+LOCATION_ANNOUNCEMENT_ID = "location-announcement"
+
+
+def _location_announcement_template() -> dict[str, Any]:
+    """Rainbow location board: NOW DISPLAYING HIGH SCORES FOR {{location}}."""
     location_entity = "sensor.2026_leaderboard_location"
     return {
-        "id": "high-scores-intro",
-        "name": "High Scores Intro",
+        "id": LOCATION_ANNOUNCEMENT_ID,
+        "name": "Location Announcement",
         "props": [
             {
                 "name": "location",
@@ -120,7 +124,7 @@ def _game_template(
             {
                 "name": "score",
                 "entity_id": score_entity,
-                "template": _score_k_template(score_entity),
+                "template": _score_comma_template(score_entity),
             },
         ],
         "vbml": {
@@ -171,10 +175,20 @@ def _game_template(
                         "justify": "center",
                         "align": "top",
                         "height": 1,
+                        "width": 22,
+                        "absolutePosition": {"x": 0, "y": 4},
+                    },
+                    "template": "TOP SCORE",
+                },
+                {
+                    "style": {
+                        "justify": "center",
+                        "align": "top",
+                        "height": 1,
                         "width": 20,
                         "absolutePosition": {"x": 1, "y": 5},
                     },
-                    "template": "TOP SCORE {{score}}",
+                    "template": "{{score}}",
                 },
                 {
                     "style": {
@@ -203,7 +217,7 @@ def _game_template(
 
 
 DEFAULT_TEMPLATES: list[dict[str, Any]] = [
-    _high_scores_intro_template(),
+    _location_announcement_template(),
     _game_template(
         template_id="dungeons-dragons",
         name="Dungeons & Dragons",
@@ -317,6 +331,56 @@ def _props_have_blank_templates(props: list[dict[str, Any]] | None) -> bool:
     return False
 
 
+def _uses_k_score_format(props: list[dict[str, Any]] | None) -> bool:
+    """Return True if a score prop still uses thousands/K formatting."""
+    for prop in props or []:
+        template = str(prop.get("template") or "")
+        if "/ 1000" in template or ":,.0f}K" in template:
+            return True
+    return False
+
+
+def _uses_combined_top_score_line(vbml: Any) -> bool:
+    """Return True if VBML still packs label + score on one line."""
+    return "TOP SCORE {{score}}" in str(vbml)
+
+
+def _is_location_announcement(item: dict[str, Any]) -> bool:
+    """Match current or legacy ids/names for the rainbow location board."""
+    template_id = str(item.get("id") or "")
+    name = str(item.get("name") or "").lower()
+    return template_id in {LOCATION_ANNOUNCEMENT_ID, "high-scores-intro"} or name in {
+        "location announcement",
+        "high scores intro",
+    }
+
+
+def _has_rainbow_border(vbml: Any) -> bool:
+    """Return True if VBML includes a rawCharacters rainbow frame."""
+    try:
+        components = (vbml or {}).get("components") or []
+    except AttributeError:
+        return False
+    return any(isinstance(c, dict) and c.get("rawCharacters") for c in components)
+
+
+def _sort_templates(templates: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Keep seeded templates in default order; custom ones follow alphabetically."""
+    seed_order = {
+        item["id"]: index for index, item in enumerate(DEFAULT_TEMPLATES)
+    }
+    # Legacy id maps to the location announcement slot
+    seed_order["high-scores-intro"] = seed_order[LOCATION_ANNOUNCEMENT_ID]
+
+    def sort_key(item: dict[str, Any]) -> tuple[int, str]:
+        template_id = str(item.get("id") or "")
+        if template_id in seed_order:
+            return (seed_order[template_id], "")
+        return (1000, str(item.get("name") or "").lower())
+
+    return sorted(templates, key=sort_key)
+
+
 async def async_load_templates(hass: HomeAssistant) -> list[dict[str, Any]]:
     """Load templates, seeding defaults and merging any missing built-ins."""
     store = async_get_store(hass)
@@ -329,9 +393,45 @@ async def async_load_templates(hass: HomeAssistant) -> list[dict[str, Any]]:
     templates = list(data.get("templates") or [])
     by_id = {item.get("id"): index for index, item in enumerate(templates)}
     changed = False
+    seeded_game_ids = {
+        item["id"]
+        for item in DEFAULT_TEMPLATES
+        if item.get("id") != LOCATION_ANNOUNCEMENT_ID
+    }
+    location_seed = deepcopy(_location_announcement_template())
+
+    # Ensure rainbow location announcement exists (migrate legacy id/name)
+    location_index = next(
+        (i for i, item in enumerate(templates) if _is_location_announcement(item)),
+        None,
+    )
+    if location_index is None:
+        templates.insert(0, location_seed)
+        changed = True
+    else:
+        existing = templates[location_index]
+        if (
+            existing.get("id") != LOCATION_ANNOUNCEMENT_ID
+            or existing.get("name") != location_seed["name"]
+            or not _has_rainbow_border(existing.get("vbml"))
+            or "NOW DISPLAYING" not in str(existing.get("vbml"))
+        ):
+            templates[location_index] = {
+                **existing,
+                "id": LOCATION_ANNOUNCEMENT_ID,
+                "name": location_seed["name"],
+                "props": location_seed["props"],
+                "vbml": location_seed["vbml"],
+                "updated_at": _utc_now_iso(),
+            }
+            changed = True
+
+    by_id = {item.get("id"): index for index, item in enumerate(templates)}
 
     for seed in DEFAULT_TEMPLATES:
         seed_copy = deepcopy(seed)
+        if seed_copy["id"] == LOCATION_ANNOUNCEMENT_ID:
+            continue  # handled above
         existing_index = by_id.get(seed_copy["id"])
         if existing_index is None:
             templates.append(seed_copy)
@@ -340,10 +440,18 @@ async def async_load_templates(hass: HomeAssistant) -> list[dict[str, Any]]:
             continue
 
         existing = templates[existing_index]
+        refresh_layout = False
         if seed_copy["id"] == "elvira-house-of-horrors" and (
             _is_legacy_elvira_bars(existing.get("vbml"))
             or _uses_legacy_elvira_prop_names(existing.get("props"))
         ):
+            refresh_layout = True
+        if seed_copy["id"] in seeded_game_ids and (
+            _uses_k_score_format(existing.get("props"))
+            or _uses_combined_top_score_line(existing.get("vbml"))
+        ):
+            refresh_layout = True
+        if refresh_layout:
             templates[existing_index] = {
                 **existing,
                 "props": seed_copy["props"],
@@ -362,6 +470,7 @@ async def async_load_templates(hass: HomeAssistant) -> list[dict[str, Any]]:
             }
             changed = True
 
+    templates = _sort_templates(templates)
     if changed:
         await store.async_save({"templates": templates})
     return templates

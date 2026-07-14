@@ -64,8 +64,8 @@ UI fields (`justify`, `align`, `height`, `width`, `x`, `y`) become a VBML `style
 - Static assets: `custom_components/vestaboard/www/vestaboard-x-panel.js`
 - Registered at `/vestaboard_static/` + sidebar path `vestaboard-x`
 - Shared schema: `vbml_schema.py` used by services and websocket validation
-- Default editor VBML: Elvira's House of Horrors (corner black/red dots, title, player, `TOP SCORE` + K-formatted score)
-- Seeded templates also include a rainbow **High Scores Intro** (`rawCharacters` perimeter + location prop)
+- Default editor VBML: Elvira's House of Horrors (corner black/red dots, title, player, `TOP SCORE`, full comma-formatted score)
+- Seeded templates include a rainbow **Location Announcement** first (`rawCharacters` perimeter + location prop), then per-game boards
 - Templates persisted via `helpers.storage` key `vestaboard_templates`
 
 ## Branding
