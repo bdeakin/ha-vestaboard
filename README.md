@@ -26,7 +26,7 @@ To use this integration, you **must first request access to Vestaboard's Local A
 ### HACS (Recommended)
 
 1. In HACS → Integrations → ⋮ → **Custom repositories**, add `https://github.com/bdeakin/ha-vestaboard` as an **Integration**.
-2. Search for `Vestaboard-x` and download this fork.
+2. Search for `Vestaboard-x` and download this fork (HACS installs from the repository; no GitHub Release zip is required).
 3. Restart Home Assistant.
 
 You can also use the My Home Assistant badge once the repo is public:

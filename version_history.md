@@ -4,6 +4,7 @@
 
 - Rename HACS/integration display name to **Vestaboard-x**.
 - Add local brand images (`brand/`: white background, black V) that override the upstream Vestaboard CDN logos in Home Assistant 2026.3+.
+- Disable HACS `zip_release` so installs work from the GitHub repo without a prebuilt release asset (upstream-style release zips caused 404s on this fork).
 
 ## 0.3.0
 

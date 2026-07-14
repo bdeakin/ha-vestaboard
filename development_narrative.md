@@ -29,3 +29,7 @@ Framed as a personal fork for improving intuitive VBML + sensor authoring. Remov
 ## Branding
 
 HACS/integration display name is **Vestaboard-x** (domain remains `vestaboard` for Local API compatibility). Ships `custom_components/vestaboard/brand/` icons and logos: black V on white.
+
+## HACS install
+
+Upstream uses `zip_release` + `vestaboard.zip` on GitHub Releases. This fork ships without that flag so HACS downloads from the repository directly; otherwise downloads 404 when no release asset exists.

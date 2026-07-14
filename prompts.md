@@ -16,3 +16,4 @@ Personal fork (**Vestaboard-x**) to make Vestaboard VBML layouts authorable from
 - Visual board preview panel / Lovelace card.
 - Live character-count validation against model width/height in the UI.
 - Re-merge selected upstream releases on a regular cadence.
+- Keep HACS installable without requiring GitHub Release zip assets unless/until a release pipeline is maintained on the fork.
