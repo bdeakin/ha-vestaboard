@@ -48,6 +48,12 @@ UI fields (`justify`, `align`, `height`, `width`, `x`, `y`) become a VBML `style
 - Image / sensor / binary_sensor / button platforms
 - `pyvbml` board sizing forced to the discovered model dimensions
 
+## Branding
+
+- Display name: **Vestaboard-x** (`hacs.json`, `manifest.json`)
+- Domain unchanged: `vestaboard`
+- Local assets in `custom_components/vestaboard/brand/` (`icon.png`, `logo.png`, dark variants) take precedence over brands CDN on HA 2026.3+
+
 ## Distribution
 
 - Personal HACS custom repository: `https://github.com/bdeakin/ha-vestaboard`

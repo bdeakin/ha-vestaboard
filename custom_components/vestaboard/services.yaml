@@ -1,6 +1,6 @@
 message:
   name: Send message
-  description: Send a message to a Vestaboard.
+  description: Send a message to a Vestaboard (Vestaboard-x).
   fields:
     device_id:
       name: Device

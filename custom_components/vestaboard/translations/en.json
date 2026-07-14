@@ -121,7 +121,7 @@
   "services": {
     "message": {
       "name": "Send message",
-      "description": "Send a message to a Vestaboard using plain text, structured components with Home Assistant props, or raw VBML."
+      "description": "Send a message to Vestaboard-x using plain text, structured components with Home Assistant props, or raw VBML."
     }
   }
 }

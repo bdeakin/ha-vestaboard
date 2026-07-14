@@ -1,6 +1,6 @@
 {
   "domain": "vestaboard",
-  "name": "Vestaboard",
+  "name": "Vestaboard-x",
   "codeowners": [
     "@bdeakin",
     "@natekspencer"
@@ -23,5 +23,5 @@
     "pyvbml==0.3.1",
     "Pillow"
   ],
-  "version": "0.3.0"
+  "version": "0.3.1"
 }

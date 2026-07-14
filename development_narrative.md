@@ -25,3 +25,7 @@ Fork lives at `/Users/bdeakin/Documents/Cursor/ha-vestaboard` as a sibling proje
 ## README tone
 
 Framed as a personal fork for improving intuitive VBML + sensor authoring. Removed upstream support/referral copy from the README.
+
+## Branding
+
+HACS/integration display name is **Vestaboard-x** (domain remains `vestaboard` for Local API compatibility). Ships `custom_components/vestaboard/brand/` icons and logos: black V on white.

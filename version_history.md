@@ -1,5 +1,10 @@
 # Version history
 
+## 0.3.1
+
+- Rename HACS/integration display name to **Vestaboard-x**.
+- Add local brand images (`brand/`: white background, black V) that override the upstream Vestaboard CDN logos in Home Assistant 2026.3+.
+
 ## 0.3.0
 
 - Fork of natekspencer/ha-vestaboard focused on intuitive VBML authoring.

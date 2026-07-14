@@ -1,14 +1,11 @@
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://brands.home-assistant.io/vestaboard/dark_logo.png">
-  <img alt="Vestaboard logo" src="https://brands.home-assistant.io/vestaboard/logo.png" width="450px">
-</picture>
+<img alt="Vestaboard-x logo" src="images/vestaboard-x-logo.png" width="450px">
 
-# Vestaboard for Home Assistant
+# Vestaboard-x for Home Assistant
 
 [![Release](https://img.shields.io/github/v/release/bdeakin/ha-vestaboard?style=for-the-badge)](https://github.com/bdeakin/ha-vestaboard/releases)
 [![HACS Badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg?style=for-the-badge)](https://github.com/hacs/integration)
 
-Home Assistant integration for Vestaboard messaging displays.
+Home Assistant integration for Vestaboard messaging displays (**Vestaboard-x**).
 
 This is a personal fork of [natekspencer/ha-vestaboard](https://github.com/natekspencer/ha-vestaboard). It exists to make generating VBML more intuitive—especially when including live Home Assistant sensors—by letting you pick entities/templates as props and compose board regions with per-component alignment and sizing, without hand-writing escaped JSON.
 
@@ -29,7 +26,7 @@ To use this integration, you **must first request access to Vestaboard's Local A
 ### HACS (Recommended)
 
 1. In HACS → Integrations → ⋮ → **Custom repositories**, add `https://github.com/bdeakin/ha-vestaboard` as an **Integration**.
-2. Search for `Vestaboard` and download this fork.
+2. Search for `Vestaboard-x` and download this fork.
 3. Restart Home Assistant.
 
 You can also use the My Home Assistant badge once the repo is public:
@@ -54,7 +51,7 @@ Alternatively:
 
 1. Go to [Settings > Devices & services](https://my.home-assistant.io/redirect/integrations/)
 2. In the bottom-right corner, select **Add integration**
-3. Type `Vestaboard` and select the **Vestaboard** integration
+3. Type `Vestaboard-x` and select the **Vestaboard-x** integration
 4. Follow the instructions to add the integration to your Home Assistant
 
 ## Options
