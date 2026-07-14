@@ -5,52 +5,46 @@
 
 # Vestaboard for Home Assistant
 
-[![Release](https://img.shields.io/github/v/release/natekspencer/ha-vestaboard?style=for-the-badge)](https://github.com/natekspencer/ha-vestaboard/releases)
-[![HACS Badge](https://img.shields.io/badge/HACS-default-41BDF5.svg?style=for-the-badge)](https://github.com/hacs/integration)
-[![Buy Me A Coffee/Beer](https://img.shields.io/badge/Buy_Me_A_☕/🍺-F16061?style=for-the-badge&logo=ko-fi&logoColor=white&labelColor=grey)](https://ko-fi.com/natekspencer)
-[![Sponsor on GitHub](https://img.shields.io/badge/Sponsor_💜-6f42c1?style=for-the-badge&logo=github&logoColor=white&labelColor=grey)](https://github.com/sponsors/natekspencer)
-
-![Downloads](https://img.shields.io/github/downloads/natekspencer/ha-vestaboard/total?style=flat-square)
-![Latest Downloads](https://img.shields.io/github/downloads/natekspencer/ha-vestaboard/latest/total?style=flat-square)
+[![Release](https://img.shields.io/github/v/release/bdeakin/ha-vestaboard?style=for-the-badge)](https://github.com/bdeakin/ha-vestaboard/releases)
+[![HACS Badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg?style=for-the-badge)](https://github.com/hacs/integration)
 
 Home Assistant integration for Vestaboard messaging displays.
 
-## 🔐 Local API Access Required
+This repository is a fork of [natekspencer/ha-vestaboard](https://github.com/natekspencer/ha-vestaboard) with a more intuitive VBML builder: pick Home Assistant entities/templates as props, and compose board regions with per-component alignment and sizing—without hand-writing escaped JSON.
+
+## Local API Access Required
 
 To use this integration, you **must first request access to Vestaboard's Local API**. This is required to enable local communication with your Vestaboard device.
 
-### ✅ How to Request Access
+### How to Request Access
 
 1. Visit [https://www.vestaboard.com/local-api](https://www.vestaboard.com/local-api).
 2. Fill out the request form to apply for a Local API enablement token.
 3. Once approved, you will receive a token that you'll need to configure this integration.
 
-⚠️ **Note:** The integration will not function without this token. Be sure to complete this step before proceeding with setup.
+**Note:** The integration will not function without this token. Be sure to complete this step before proceeding with setup.
 
-## ⬇️ Installation
+## Installation
 
 ### HACS (Recommended)
 
-[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=natekspencer&repository=ha-vestaboard&category=integration)
+1. In HACS → Integrations → ⋮ → **Custom repositories**, add `https://github.com/bdeakin/ha-vestaboard` as an **Integration**.
+2. Search for `Vestaboard` and download this fork.
+3. Restart Home Assistant.
 
-This integration is available in the default [HACS](https://hacs.xyz/) repository.
+You can also use the My Home Assistant badge once the repo is public:
 
-1. Use the **My Home Assistant** badge above, or from within Home Assistant, click on **HACS**
-2. Search for `Vestaboard` and click on the appropriate repository
-3. Click **DOWNLOAD**
-4. Restart Home Assistant
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=bdeakin&repository=ha-vestaboard&category=integration)
 
 ### Manual
-
-If you prefer manual installation:
 
 1. Download or clone this repository
 2. Copy the `custom_components/vestaboard` folder to your Home Assistant `custom_components` directory
 3. Restart Home Assistant
 
-> ⚠️ Manual installation will not provide automatic update notifications. HACS installation is recommended unless you have a specific need.
+> Manual installation will not provide automatic update notifications. HACS installation is recommended unless you have a specific need.
 
-## ➕ Setup
+## Setup
 
 Once installed, you can set up the integration by clicking on the following badge:
 
@@ -63,7 +57,7 @@ Alternatively:
 3. Type `Vestaboard` and select the **Vestaboard** integration
 4. Follow the instructions to add the integration to your Home Assistant
 
-## ⚙️ Options
+## Options
 
 After this integration is set up, you can configure the color of your Vestaboard to adjust the image that is generated.
 
@@ -72,7 +66,7 @@ After this integration is set up, you can configure the color of your Vestaboard
 | Flagship | <img alt="Flagship Black Connected" src="images/flagship-black.png" width="100%"> | <img alt="Flagship White Connected" src="images/flagship-white.png" width="100%"> |
 | Note     |     <img alt="Note Black Connected" src="images/note-black.png" width="70%">      |     <img alt="Note White Connected" src="images/note-white.png" width="70%">      |
 
-## 🎬 Actions
+## Actions
 
 ### `vestaboard.message` - Send a message to one or more Vestaboards
 
@@ -80,18 +74,63 @@ After this integration is set up, you can configure the color of your Vestaboard
 
 #### Fields
 
-| Field                | Name                       | Required | Description                                                                                                                                                                       |
-| -------------------- | -------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `device_id`          | Device                     | ✅ Yes   | The Vestaboard device(s) to send the message to. Supports multiple devices.                                                                                                       |
-| `message`            | Message                    | No       | Plain text message to display. Supports multiline input.                                                                                                                          |
-| `justify`            | Justify                    | No       | Horizontal text alignment. Default: `center`. Options: `left`, `right`, `center`, `justified`.                                                                                    |
-| `align`              | Align                      | No       | Vertical text alignment. Default: `center`. Options: `top`, `bottom`, `center`, `justified`.                                                                                      |
-| `vbml`               | Vestaboard Markup Language | No       | Compose a static or dynamic message using [VBML](https://docs.vestaboard.com/docs/vbml). Overrides `message` when provided.                                                       |
-| `strategy`           | Transition Strategy        | No       | Animation style when a new message is sent. See [Transition Strategy](#transition-strategy) section below.                                                                        |
-| `step_size`          | Step Size                  | No       | Number of columns/rows/bits to animate simultaneously. Range: 1–132. Leave blank to animate one at a time.                                                                        |
-| `step_interval_ms`   | Step Interval              | No       | Delay (in milliseconds) between each animation step. Range: 1–3000 ms. Leave blank for immediate sequential activation.                                                           |
-| `duration`           | Duration                   | No       | Display the message temporarily for the specified duration (in seconds). The board reverts to its previous persistent message when the duration expires. Range: 10–43200 seconds. |
-| `bypass_quiet_hours` | Bypass Quiet Hours         | No       | If `true`, ignores quiet hours settings and sends the message immediately.                                                                                                        |
+| Field                | Name                       | Required | Description |
+| -------------------- | -------------------------- | -------- | ----------- |
+| `device_id`          | Device                     | Yes      | The Vestaboard device(s) to send the message to. Supports multiple devices. |
+| `message`            | Message                    | No       | Plain text message. Ignored when `components` or `vbml` are set. |
+| `justify` / `align`  | Justify / Align            | No       | Horizontal / vertical alignment for a simple `message`. Default: `center`. |
+| `props`              | Props                      | No       | Dynamic values from entities or Jinja templates. Used with `components`. |
+| `components`         | Components                 | No       | Structured VBML regions (template + formatting). Preferred over raw `vbml`. |
+| `vbml`               | Vestaboard Markup Language | No       | Advanced raw VBML object. Overrides `message` and `components`. |
+| `strategy`           | Transition Strategy        | No       | Animation style when a new message is sent. See [Transition Strategy](#transition-strategy). |
+| `step_size`          | Step Size                  | No       | Columns/rows/bits to animate together. Range: 1–132. |
+| `step_interval_ms`   | Step Interval              | No       | Delay between animation steps in ms. Range: 1–3000. |
+| `duration`           | Duration                   | No       | Temporary display duration in seconds (10–43200), then restore persistent message. |
+| `bypass_quiet_hours` | Bypass Quiet Hours         | No       | If `true`, ignore quiet hours and send immediately. |
+
+Message source priority: **`vbml` > `components` (+ optional `props`) > `message`**.
+
+#### Structured components (recommended)
+
+Use **Props** to pull live Home Assistant values, then reference them in component templates with VBML `{{prop_name}}` syntax. Put Home Assistant Jinja in prop `template` fields—not in component templates—so the two `{{ }}` languages do not collide.
+
+Each component supports:
+
+- `template` — text with `{{prop}}` placeholders
+- `justify` — `left`, `right`, `center`, `justified`
+- `align` — `top`, `bottom`, `center`, `justified`
+- `height` / `width` — region size in rows/columns
+- `x` / `y` — optional absolute position (both required together)
+
+**Props** each have a `name`, plus either:
+
+- `entity_id` (optional `attribute`), or
+- `template` (Home Assistant Jinja; wins when both are set)
+
+##### Example — sensors with alignment
+
+```yaml
+action: vestaboard.message
+data:
+  device_id: your_device_id
+  props:
+    - name: temp
+      entity_id: sensor.outdoor_temperature
+      template: "{{ states('sensor.outdoor_temperature') | round(0) }}"
+    - name: player
+      entity_id: sensor.stern_top_player
+  components:
+    - template: "{{temp}} F"
+      justify: center
+      align: top
+      height: 1
+      width: 22
+    - template: "{{player}}"
+      justify: center
+      align: bottom
+      height: 2
+      width: 22
+```
 
 #### Transition Strategy
 
@@ -113,7 +152,7 @@ After this integration is set up, you can configure the color of your Vestaboard
 
 ---
 
-#### Examples
+#### More examples
 
 **Send a simple text message:**
 
@@ -138,23 +177,22 @@ data:
   duration: 120
 ```
 
-**Send a dynamic VBML message:**
+**Advanced raw VBML** (escape hatch; prefer `components` / `props` above):
 
 ```yaml
 action: vestaboard.message
 data:
   device_id: your_device_id
-  vbml: >
-    {
-      "props": { "hours": "07", "minutes": "35" },
-      "components": [{
-        "style": { "justify": "center", "align": "center" },
-        "template": "{{ '{{hours}}:{{minutes}}' }}"
-      }]
-    }
+  vbml:
+    props:
+      hours: "07"
+      minutes: "35"
+    components:
+      - style:
+          justify: center
+          align: center
+        template: "{{hours}}:{{minutes}}"
 ```
-
-Note: The outer "{{ }}" escapes the inner VBML template syntax in the example above.
 
 **Send to multiple devices, bypassing quiet hours:**
 
@@ -172,26 +210,13 @@ data:
 
 #### Notes
 
-- Either `message` or `vbml` should be provided, but not both. `vbml` takes precedence if both are given.
+- Provide one of `message`, `components`, or `vbml`.
 - `step_size` and `step_interval_ms` only apply when a `strategy` is specified.
 - `duration` is useful for transient alerts - the board will restore its last persistent message automatically after the duration expires.
 
----
+## Credits
 
-## ❤️ Support Me
+- Upstream integration by [natekspencer](https://github.com/natekspencer/ha-vestaboard)
+- Fork enhancements focus on structured VBML composition with Home Assistant entities
 
-I maintain this Home Assistant integration in my spare time. If you find it useful, consider supporting development:
-
-- 💜 [Sponsor me on GitHub](https://github.com/sponsors/natekspencer)
-- ☕ [Buy me a coffee / beer](https://ko-fi.com/natekspencer)
-- 💸 [PayPal (direct support)](https://www.paypal.com/paypalme/natekspencer)
-- ⭐ [Star this project](https://github.com/natekspencer/ha-vestaboard)
-- 📦 If you’d like to support in other ways, such as donating hardware for testing, feel free to [reach out to me](https://github.com/natekspencer)
-
-If you don't already own a Vestaboard, please consider using my referral link below to get $200 off (as well as a $200 referral bonus to me in appreciation)!
-
-[Save $200 off a Vestaboard](https://web.vestaboard.com/referral?vbref=ZWVLZW)
-
-## 📈 Star History
-
-[![Star History Chart](https://api.star-history.com/chart?repos=natekspencer/ha-vestaboard&type=date&legend=top-left&sealed_token=S8oWvIEzE6WhaZ2TAACYrs6VDi3zcE9Jb3DR8rBwHwQZTwlUostTfvofcQvtvH_WX-vl8UexhG6X-i8-TLXCFo2RrDK_ChR4NIEPG1b8IbqngYFZgHd7ELpO7oqe0dMJObZP2pf_u_5G_FNXdg2FpRe4Altf74moTT_RSZEZP-08s1coJbz0f_9XZI3W)](https://www.star-history.com/?repos=natekspencer%2Fha-vestaboard)
+If you don't already own a Vestaboard, please consider using Nate's referral link to get $200 off: [Save $200 off a Vestaboard](https://web.vestaboard.com/referral?vbref=ZWVLZW)
