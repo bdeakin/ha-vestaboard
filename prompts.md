@@ -2,7 +2,7 @@
 
 ## Product intent
 
-Make Vestaboard VBML layouts authorable from Home Assistant Automations / Developer Tools without writing escaped JSON. Users should reference sensors directly and set alignment/formatting per board region.
+Personal fork to make Vestaboard VBML layouts authorable from Home Assistant Automations / Developer Tools without writing escaped JSON. Users should reference sensors directly and set alignment/formatting per board region. Do not include upstream sponsorship/referral sections in the README.
 
 ## Constraints honored
 

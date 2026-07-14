@@ -50,5 +50,5 @@ UI fields (`justify`, `align`, `height`, `width`, `x`, `y`) become a VBML `style
 
 ## Distribution
 
-- HACS custom repository: `https://github.com/bdeakin/ha-vestaboard`
+- Personal HACS custom repository: `https://github.com/bdeakin/ha-vestaboard`
 - Upstream remote for syncing: `natekspencer/ha-vestaboard`

@@ -20,4 +20,8 @@ HA Jinja is intentionally limited to prop templates so `{{ }}` never collides wi
 
 ## Project layout
 
-Fork lives at `/Users/bdeakin/Documents/Cursor/ha-vestaboard` as a sibling project to Stern Insider work. Remote `upstream` tracks the original author; `origin` will point at `bdeakin/ha-vestaboard` once published.
+Fork lives at `/Users/bdeakin/Documents/Cursor/ha-vestaboard` as a sibling project to Stern Insider work. Remote `upstream` tracks the original author; `origin` is `bdeakin/ha-vestaboard`.
+
+## README tone
+
+Framed as a personal fork for improving intuitive VBML + sensor authoring. Removed upstream support/referral copy from the README.

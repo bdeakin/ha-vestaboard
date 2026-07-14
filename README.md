@@ -10,7 +10,7 @@
 
 Home Assistant integration for Vestaboard messaging displays.
 
-This repository is a fork of [natekspencer/ha-vestaboard](https://github.com/natekspencer/ha-vestaboard) with a more intuitive VBML builder: pick Home Assistant entities/templates as props, and compose board regions with per-component alignment and sizing—without hand-writing escaped JSON.
+This is a personal fork of [natekspencer/ha-vestaboard](https://github.com/natekspencer/ha-vestaboard). It exists to make generating VBML more intuitive—especially when including live Home Assistant sensors—by letting you pick entities/templates as props and compose board regions with per-component alignment and sizing, without hand-writing escaped JSON.
 
 ## Local API Access Required
 
@@ -213,10 +213,3 @@ data:
 - Provide one of `message`, `components`, or `vbml`.
 - `step_size` and `step_interval_ms` only apply when a `strategy` is specified.
 - `duration` is useful for transient alerts - the board will restore its last persistent message automatically after the duration expires.
-
-## Credits
-
-- Upstream integration by [natekspencer](https://github.com/natekspencer/ha-vestaboard)
-- Fork enhancements focus on structured VBML composition with Home Assistant entities
-
-If you don't already own a Vestaboard, please consider using Nate's referral link to get $200 off: [Save $200 off a Vestaboard](https://web.vestaboard.com/referral?vbref=ZWVLZW)

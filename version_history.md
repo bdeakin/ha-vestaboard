@@ -7,6 +7,7 @@
 - Resolve props from Home Assistant entities/attributes or Jinja templates before `pyvbml` parse.
 - Keep raw `vbml` as an advanced object selector override.
 - Point documentation / issue tracker at `bdeakin/ha-vestaboard`.
+- README clarifies personal-fork intent and drops support/referral sections.
 
 ## Upstream baseline
 
