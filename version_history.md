@@ -1,5 +1,10 @@
 # Version history
 
+## 0.6.4
+
+- Clarify that template sensor props stay dynamic at send time; panel Save/Send no longer persist preview snapshots into `vbml.props`, and panel Send always passes live prop bindings.
+- Repair **Location Announcement** templates that were missing the `location` → `sensor.2026_leaderboard_location` prop binding.
+
 ## 0.6.3
 
 - Display game scores as the full number with commas (e.g. `1,233,532,321`) instead of thousands/`K`.

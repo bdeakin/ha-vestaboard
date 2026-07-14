@@ -31,6 +31,8 @@ Developer Tools / Automation UI
 
 Loads a named template from `vestaboard_templates` by `template_id` (or exact name), merges resolved props into the saved VBML, and reuses the same delivery path as `message` (transitions, duration, quiet hours). The automation UI select options are set via `async_set_service_schema` and refreshed after panel template save/delete.
 
+Saved templates store **prop bindings** (`entity_id` / Jinja), not score/player snapshots. Component templates keep placeholders (`{{player}}`, `{{score}}`, `{{location}}`). On every send, `async_resolve_props` reads the current Home Assistant state and overwrites `vbml.props` so leaderboard changes show up without editing templates. The VBML editor may inject a preview snapshot into `props` for display only; Save clears those before persistence.
+
 ## Message composition
 
 | Source | When used | Notes |

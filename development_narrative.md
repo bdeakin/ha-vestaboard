@@ -41,3 +41,5 @@ Native action selectors cannot host syntax highlighting or drag-and-drop, so a s
 Empty prop `template` strings (from seeded player props) briefly broke resolution by winning over `entity_id`; resolve now treats blank templates as absent.
 
 Added a rainbow **Location Announcement** template in the Vestaboard welcome-board style (`NOW DISPLAYING` / `HIGH SCORES FOR` / location), listed first in Saved Templates, with color blocks progressing linearly around the perimeter from the bottom-left corner.
+
+Leaderboard templates stay dynamic: each send re-resolves entity/Jinja props from live sensors. Editor preview values in `vbml.props` are snapshots only and are cleared on save so they are not mistaken for frozen scores. Location Announcement is migrated to always include the `location` entity prop if it was missing from an earlier save.

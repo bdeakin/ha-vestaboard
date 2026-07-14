@@ -15,6 +15,7 @@ Personal fork (**Vestaboard-x**) configured to display Stern Insider Connected p
 - Support multiple saved game templates and one-click copy of automation YAML (`props` + `vbml`).
 - Prefer a dedicated `vestaboard.send_template` action with a dynamic Template dropdown sourced from the panel Store, so automations do not require pasting VBML.
 - Prop resolution: non-empty Jinja `template` wins; blank `template` must fall through to `entity_id` (player name sensors).
+- Templates bind sensors dynamically; never rely on static values baked into `vbml.props` — resolve at every send.
 
 ## Future prompts
 

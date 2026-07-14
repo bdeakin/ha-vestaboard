@@ -417,11 +417,11 @@ def async_setup_services(hass: HomeAssistant) -> None:
             )
 
         vbml = dict(saved.get(CONF_VBML) or {})
-        props = list(saved.get(CONF_PROPS) or [])
-        resolved = await async_resolve_props(hass, props)
-        merged = dict(vbml.get(CONF_PROPS) or {})
-        merged.update(resolved)
-        vbml[CONF_PROPS] = merged
+        # Always replace VBML props with a fresh resolve from entity bindings —
+        # never trust snapshot values that may have been saved for editor preview.
+        vbml[CONF_PROPS] = await async_resolve_props(
+            hass, list(saved.get(CONF_PROPS) or [])
+        )
         await async_deliver_vbml(hass, call, vbml)
 
     hass.services.async_register(

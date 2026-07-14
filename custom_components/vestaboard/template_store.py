@@ -364,6 +364,17 @@ def _has_rainbow_border(vbml: Any) -> bool:
     return any(isinstance(c, dict) and c.get("rawCharacters") for c in components)
 
 
+def _has_location_prop(props: list[dict[str, Any]] | None) -> bool:
+    """Return True if props include a location binding with an entity_id."""
+    for prop in props or []:
+        if (
+            str(prop.get("name") or "") == "location"
+            and str(prop.get("entity_id") or "").strip()
+        ):
+            return True
+    return False
+
+
 def _sort_templates(templates: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Keep seeded templates in default order; custom ones follow alphabetically."""
     seed_order = {
@@ -415,6 +426,7 @@ async def async_load_templates(hass: HomeAssistant) -> list[dict[str, Any]]:
             or existing.get("name") != location_seed["name"]
             or not _has_rainbow_border(existing.get("vbml"))
             or "NOW DISPLAYING" not in str(existing.get("vbml"))
+            or not _has_location_prop(existing.get("props"))
         ):
             templates[location_index] = {
                 **existing,

@@ -238,6 +238,8 @@ class VestaboardXPanel extends HTMLElement {
     let vbml;
     try {
       vbml = JSON.parse(this._vbmlText);
+      // Never persist resolved sensor snapshots — live props resolve at send time
+      vbml.props = {};
     } catch (err) {
       this._sendStatus = `Cannot save — VBML JSON invalid: ${err.message}`;
       this._render();
@@ -643,6 +645,8 @@ class VestaboardXPanel extends HTMLElement {
     let vbml;
     try {
       vbml = JSON.parse(this._vbmlText);
+      // Clear snapshots; service then merges live props from entity bindings
+      vbml.props = {};
     } catch (err) {
       this._sendStatus = `Invalid JSON: ${err.message}`;
       this._render();
@@ -651,6 +655,7 @@ class VestaboardXPanel extends HTMLElement {
     try {
       await this._hass.callService("vestaboard", "message", {
         device_id: this._deviceId,
+        props: this._currentPropsPayload(),
         vbml,
       });
       this._sendStatus = "Message sent.";
@@ -1094,9 +1099,10 @@ class VestaboardXPanel extends HTMLElement {
         </div>
         <p class="hint" style="margin-top:10px;">
           Preferred: Automations → <code>vestaboard.send_template</code> and pick a template from the dropdown
-          (no paste). <strong>Location Announcement</strong> is the rainbow
-          <code>NOW DISPLAYING HIGH SCORES FOR</code> board. Duplicate a game with
-          <strong>Save as new</strong>, then swap entities and title text.
+          (no paste). Sensor values are live at send time — the VBML editor may show a snapshot for preview,
+          but each send re-reads entities like <code>top_player</code> / <code>top_score</code>.
+          <strong>Location Announcement</strong> is the rainbow
+          <code>NOW DISPLAYING HIGH SCORES FOR</code> board.
         </p>
       </div>
       <div class="card">

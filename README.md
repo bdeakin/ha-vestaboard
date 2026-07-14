@@ -90,7 +90,7 @@ After installing and restarting, open **Vestaboard-x** in the Home Assistant sid
 
 [![Open your Home Assistant instance and show your service developer tools with a specific action selected.](https://my.home-assistant.io/badges/developer_call_service.svg)](https://my.home-assistant.io/redirect/developer_call_service/?service=vestaboard.send_template)
 
-Best path for top-score boards: save/edit the layout in the Vestaboard-x panel, then in an automation choose **Send saved template** and select the game from the **Template** dropdown. The service loads that template’s VBML and props, resolves live sensor values, and sends to the board.
+Best path for top-score boards: save/edit the layout in the Vestaboard-x panel, then in an automation choose **Send saved template** and select the game from the **Template** dropdown. The service loads that template’s VBML and prop bindings, **re-reads the Home Assistant sensors at send time** (so new top players/scores appear automatically), and sends to the board. Values you may see inside the VBML editor `props` object are preview snapshots only.
 
 | Field                | Name                 | Required | Description |
 | -------------------- | -------------------- | -------- | ----------- |
