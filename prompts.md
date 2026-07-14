@@ -10,7 +10,7 @@ Personal fork (**Vestaboard-x**) to make Vestaboard VBML layouts authorable from
 - HA Jinja belongs in prop `template` fields; component templates use VBML `{{prop}}` only.
 - Preserve simple `message` + justify/align path and raw `vbml` escape hatch.
 - Priority: `vbml` > `components`/`props` > `message`.
-- Default props/VBML target Stern `sensor.2026_leaderboard_*` entities.
+- Default VBML is a single-game Elvira board (title, player, `TOP SCORE` + `#,##0K`) with red/black color blocks; other games are separate manual actions.
 
 ## Future prompts
 

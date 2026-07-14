@@ -36,4 +36,4 @@ Upstream uses `zip_release` + `vestaboard.zip` on GitHub Releases. This fork shi
 
 ## VBML modal panel
 
-Native action selectors cannot host syntax highlighting or drag-and-drop, so a sidebar panel provides a pop-out VBML modal: JSON color coding, websocket-backed validation, and prop chips that insert `{{name}}` into templates. Defaults preload Stern `sensor.2026_leaderboard_*` entities for a ready-to-edit high-score board.
+Native action selectors cannot host syntax highlighting or drag-and-drop, so a sidebar panel provides a pop-out VBML modal: JSON color coding, websocket-backed validation, and prop chips that insert `{{name}}` into templates. Defaults use a single-game Elvira's House of Horrors board (full title, player, score as `#,##0K`) framed with red/black Vestaboard color blocks; other games are left to separate manual actions.

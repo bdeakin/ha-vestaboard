@@ -39,123 +39,58 @@ class VestaboardXPanel extends HTMLElement {
     this._rendered = true;
   }
 
+  _scoreKTemplate(entityId) {
+    // Format like #,##0"K" — thousands with comma separators + K suffix
+    return `{{ '{:,.0f}K'.format((states('${entityId}') | float(0) / 1000)) }}`;
+  }
+
   _defaultProps() {
-    // Stern Insider "2026 Leaderboard" sensors — available as drag/drop chips
+    // Single-game template: Elvira's House of Horrors (duplicate + edit for other games)
+    const elviraScore =
+      "sensor.2026_leaderboard_elvira_s_house_of_horrors_top_score";
+    const elviraPlayer =
+      "sensor.2026_leaderboard_elvira_s_house_of_horrors_top_player";
     return [
       {
-        name: "leaderboard",
-        entity_id: "sensor.2026_leaderboard_leaderboard",
-        template: "",
-      },
-      {
-        name: "location",
-        entity_id: "sensor.2026_leaderboard_location",
-        template: "",
-      },
-      {
-        name: "games",
-        entity_id: "sensor.2026_leaderboard_games",
-        template: "",
-      },
-      {
-        name: "dnd_score",
-        entity_id: "sensor.2026_leaderboard_dungeons_dragons_top_score",
-        template: "",
-      },
-      {
-        name: "dnd_player",
-        entity_id: "sensor.2026_leaderboard_dungeons_dragons_top_player",
+        name: "elvira_player",
+        entity_id: elviraPlayer,
         template: "",
       },
       {
         name: "elvira_score",
-        entity_id:
-          "sensor.2026_leaderboard_elvira_s_house_of_horrors_top_score",
-        template: "",
-      },
-      {
-        name: "elvira_player",
-        entity_id:
-          "sensor.2026_leaderboard_elvira_s_house_of_horrors_top_player",
-        template: "",
-      },
-      {
-        name: "godzilla_score",
-        entity_id: "sensor.2026_leaderboard_godzilla_top_score",
-        template: "",
-      },
-      {
-        name: "godzilla_player",
-        entity_id: "sensor.2026_leaderboard_godzilla_top_player",
-        template: "",
-      },
-      {
-        name: "jaws_score",
-        entity_id: "sensor.2026_leaderboard_jaws_top_score",
-        template: "",
-      },
-      {
-        name: "jaws_player",
-        entity_id: "sensor.2026_leaderboard_jaws_top_player",
-        template: "",
-      },
-      {
-        name: "wick_score",
-        entity_id: "sensor.2026_leaderboard_john_wick_top_score",
-        template: "",
-      },
-      {
-        name: "wick_player",
-        entity_id: "sensor.2026_leaderboard_john_wick_top_player",
-        template: "",
-      },
-      {
-        name: "jp_score",
-        entity_id: "sensor.2026_leaderboard_jurassic_park_top_score",
-        template: "",
-      },
-      {
-        name: "jp_player",
-        entity_id: "sensor.2026_leaderboard_jurassic_park_top_player",
-        template: "",
-      },
-      {
-        name: "pokemon_score",
-        entity_id: "sensor.2026_leaderboard_pokemon_top_score",
-        template: "",
-      },
-      {
-        name: "pokemon_player",
-        entity_id: "sensor.2026_leaderboard_pokemon_top_player",
-        template: "",
-      },
-      {
-        name: "xmen_score",
-        entity_id: "sensor.2026_leaderboard_the_uncanny_x_men_top_score",
-        template: "",
-      },
-      {
-        name: "xmen_player",
-        entity_id: "sensor.2026_leaderboard_the_uncanny_x_men_top_player",
-        template: "",
+        entity_id: elviraScore,
+        template: this._scoreKTemplate(elviraScore),
       },
     ];
   }
 
   _defaultVbml() {
-    // Flagship is 6x22 — location header + five high-score lines
+    // Flagship 6x22 — Elvira red ({63}) / black ({70}) palette
+    const redBar = "{63}".repeat(22);
+    const redBlack = "{63}{70}".repeat(11); // 22 cols alternating
     return JSON.stringify(
       {
         props: {},
         components: [
           {
-            style: { justify: "center", align: "top", height: 1, width: 22 },
-            template: "{{location}}",
+            style: { justify: "left", align: "top", height: 1, width: 22 },
+            template: redBar,
           },
           {
-            style: { justify: "left", align: "top", height: 5, width: 22 },
-            template:
-              "DND {{dnd_score}}\nELV {{elvira_score}}\nGOD {{godzilla_score}}\nJAWS {{jaws_score}}\nXMEN {{xmen_score}}",
+            style: { justify: "center", align: "top", height: 2, width: 22 },
+            template: "ELVIRA'S HOUSE\nOF HORRORS",
+          },
+          {
+            style: { justify: "center", align: "top", height: 1, width: 22 },
+            template: "{{elvira_player}}",
+          },
+          {
+            style: { justify: "left", align: "top", height: 1, width: 22 },
+            template: redBlack,
+          },
+          {
+            style: { justify: "center", align: "top", height: 1, width: 22 },
+            template: "TOP SCORE {{elvira_score}}",
           },
         ],
       },

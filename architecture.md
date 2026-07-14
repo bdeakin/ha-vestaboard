@@ -58,6 +58,7 @@ UI fields (`justify`, `align`, `height`, `width`, `x`, `y`) become a VBML `style
 - Static assets: `custom_components/vestaboard/www/vestaboard-x-panel.js`
 - Registered at `/vestaboard_static/` + sidebar path `vestaboard-x`
 - Shared schema: `vbml_schema.py` used by services and websocket validation
+- Default editor VBML: Elvira's House of Horrors (red/black bars, title, player, `TOP SCORE` + K-formatted score)
 
 ## Branding
 

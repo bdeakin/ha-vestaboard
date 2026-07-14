@@ -114,28 +114,41 @@ Each component supports:
 - `entity_id` (optional `attribute`), or
 - `template` (Home Assistant Jinja; wins when both are set)
 
-##### Example — sensors with alignment
+##### Example — single game (title / player / score)
 
 ```yaml
 action: vestaboard.message
 data:
   device_id: your_device_id
   props:
-    - name: temp
-      entity_id: sensor.outdoor_temperature
-      template: "{{ states('sensor.outdoor_temperature') | round(0) }}"
-    - name: player
-      entity_id: sensor.stern_top_player
+    - name: elvira_player
+      entity_id: sensor.2026_leaderboard_elvira_s_house_of_horrors_top_player
+    - name: elvira_score
+      entity_id: sensor.2026_leaderboard_elvira_s_house_of_horrors_top_score
+      template: >-
+        {{ '{:,.0f}K'.format((states('sensor.2026_leaderboard_elvira_s_house_of_horrors_top_score')
+        | float(0) / 1000)) }}
   components:
-    - template: "{{temp}} F"
-      justify: center
-      align: top
+    # {63}=red, {70}=black color blocks
+    - template: "{63}{63}{63}{63}{63}{63}{63}{63}{63}{63}{63}{63}{63}{63}{63}{63}{63}{63}{63}{63}{63}{63}"
+      justify: left
       height: 1
       width: 22
-    - template: "{{player}}"
+    - template: "ELVIRA'S HOUSE\nOF HORRORS"
       justify: center
-      align: bottom
       height: 2
+      width: 22
+    - template: "{{elvira_player}}"
+      justify: center
+      height: 1
+      width: 22
+    - template: "{63}{70}{63}{70}{63}{70}{63}{70}{63}{70}{63}{70}{63}{70}{63}{70}{63}{70}{63}{70}{63}{70}"
+      justify: left
+      height: 1
+      width: 22
+    - template: "TOP SCORE {{elvira_score}}"
+      justify: center
+      height: 1
       width: 22
 ```
 

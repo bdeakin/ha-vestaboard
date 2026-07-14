@@ -1,5 +1,23 @@
 # Version history
 
+## 0.4.5
+
+- Elvira last line shows `TOP SCORE` next to the formatted score value.
+
+## 0.4.4
+
+- Elvira default VBML adds red (`{63}`) and black (`{70}`) color blocks: solid red header bar and alternating red/black accent above the score.
+
+## 0.4.3
+
+- Default VBML is a single-game layout for Elvira's House of Horrors: full title (wrapped), centered player, score on the last line (`#,##0K`).
+
+## 0.4.2
+
+- Default leaderboard VBML uses per-row columns: game left, player center, score right.
+- Score props format as thousands with K (`#,##0K`, e.g. `1,234K`).
+- Game labels: D&D, ELVIRA, GODZILLA, JAWS, X-MEN.
+
 ## 0.4.1
 
 - Default Vestaboard-x panel props and VBML template to the Stern 2026 leaderboard sensors (location header + top-score lines; all game sensors available as drag-and-drop props).

@@ -71,9 +71,11 @@ message:
               selector:
                 template:
       example:
-        - name: temp
-          entity_id: sensor.outdoor_temperature
-          template: "{{ states('sensor.outdoor_temperature') | round(0) }}"
+        - name: elvira_player
+          entity_id: sensor.2026_leaderboard_elvira_s_house_of_horrors_top_player
+        - name: elvira_score
+          entity_id: sensor.2026_leaderboard_elvira_s_house_of_horrors_top_score
+          template: "{{ '{:,.0f}K'.format((states('sensor.2026_leaderboard_elvira_s_house_of_horrors_top_score') | float(0) / 1000)) }}"
     components:
       name: Components
       description: >-
@@ -140,15 +142,25 @@ message:
                   max: 5
                   mode: box
       example:
-        - template: "{{temp}} F"
-          justify: center
-          align: top
+        - template: "{63}{63}{63}{63}{63}{63}{63}{63}{63}{63}{63}{63}{63}{63}{63}{63}{63}{63}{63}{63}{63}{63}"
+          justify: left
           height: 1
           width: 22
-        - template: "{{player}}"
+        - template: "ELVIRA'S HOUSE\nOF HORRORS"
           justify: center
-          align: bottom
           height: 2
+          width: 22
+        - template: "{{elvira_player}}"
+          justify: center
+          height: 1
+          width: 22
+        - template: "{63}{70}{63}{70}{63}{70}{63}{70}{63}{70}{63}{70}{63}{70}{63}{70}{63}{70}{63}{70}{63}{70}"
+          justify: left
+          height: 1
+          width: 22
+        - template: "TOP SCORE {{elvira_score}}"
+          justify: center
+          height: 1
           width: 22
     vbml:
       name: Vestaboard markup language (advanced)
@@ -159,13 +171,39 @@ message:
         object:
       example:
         props:
-          hours: "07"
-          minutes: "35"
+          elvira_player: "NJPINBLAKE"
+          elvira_score: "1,234K"
         components:
           - style:
+              justify: left
+              align: top
+              height: 1
+              width: 22
+            template: "{63}{63}{63}{63}{63}{63}{63}{63}{63}{63}{63}{63}{63}{63}{63}{63}{63}{63}{63}{63}{63}{63}"
+          - style:
               justify: center
-              align: center
-            template: "{{hours}}:{{minutes}}"
+              align: top
+              height: 2
+              width: 22
+            template: "ELVIRA'S HOUSE\nOF HORRORS"
+          - style:
+              justify: center
+              align: top
+              height: 1
+              width: 22
+            template: "{{elvira_player}}"
+          - style:
+              justify: left
+              align: top
+              height: 1
+              width: 22
+            template: "{63}{70}{63}{70}{63}{70}{63}{70}{63}{70}{63}{70}{63}{70}{63}{70}{63}{70}{63}{70}{63}{70}"
+          - style:
+              justify: center
+              align: top
+              height: 1
+              width: 22
+            template: "TOP SCORE {{elvira_score}}"
     strategy:
       name: Transition strategy
       description: Animation style when a new message is sent.
