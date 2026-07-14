@@ -2,6 +2,7 @@
   "domain": "vestaboard",
   "name": "Vestaboard",
   "codeowners": [
+    "@bdeakin",
     "@natekspencer"
   ],
   "config_flow": true,
@@ -10,10 +11,10 @@
       "macaddress": "4C93A60*"
     }
   ],
-  "documentation": "https://github.com/natekspencer/ha-vestaboard",
+  "documentation": "https://github.com/bdeakin/ha-vestaboard",
   "integration_type": "device",
   "iot_class": "local_polling",
-  "issue_tracker": "https://github.com/natekspencer/ha-vestaboard/issues",
+  "issue_tracker": "https://github.com/bdeakin/ha-vestaboard/issues",
   "loggers": [
     "custom_components.vestaboard",
     "pyvbml"
@@ -22,5 +23,5 @@
     "pyvbml==0.3.1",
     "Pillow"
   ],
-  "version": "0.2.1"
+  "version": "0.3.0"
 }

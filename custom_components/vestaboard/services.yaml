@@ -13,14 +13,14 @@ message:
       example: device_id
     message:
       name: Message
-      description: Message to send.
+      description: Simple plain-text message. Ignored when components or vbml are set.
       selector:
         text:
           multiline: true
       example: This is a message
     justify:
       name: Justify
-      description: Horizontal alignment of text. Optional, default=center
+      description: Horizontal alignment for a simple message. Optional, default=center.
       selector:
         select:
           translation_key: "justify"
@@ -32,7 +32,7 @@ message:
       example: left
     align:
       name: Align
-      description: Vertical alignment of text. Optional, default=center
+      description: Vertical alignment for a simple message. Optional, default=center.
       selector:
         select:
           translation_key: "align"
@@ -42,12 +42,130 @@ message:
             - "center"
             - "justified"
       example: top
-    vbml:
-      name: Vestaboard markup language
-      description: "Compose a static or dynamic message using Vestaboard markup language. See https://docs.vestaboard.com/docs/vbml for more information."
+    props:
+      name: Props
+      description: >-
+        Dynamic values from Home Assistant entities or templates. Reference them
+        in component templates as {{prop_name}}. Home Assistant Jinja belongs
+        here (not in component templates) to avoid colliding with VBML syntax.
       selector:
-        text:
-      example: '{ "props": { "hours": "07", "minutes": "35" }, "components": [ { "style": { "justify": "center", "align": "center" }, "template": "{{ ''{{hours}}:{{minutes}}'' }}"}]}'
+        object:
+          label_field: name
+          multiple: true
+          fields:
+            name:
+              label: Prop name
+              required: true
+              selector:
+                text:
+            entity_id:
+              label: Entity
+              selector:
+                entity:
+            attribute:
+              label: Attribute
+              selector:
+                text:
+            template:
+              label: Template
+              selector:
+                template:
+      example:
+        - name: temp
+          entity_id: sensor.outdoor_temperature
+          template: "{{ states('sensor.outdoor_temperature') | round(0) }}"
+    components:
+      name: Components
+      description: >-
+        Structured VBML layout regions. Each component can set its own template,
+        horizontal/vertical alignment, and optional size or absolute position.
+        Use {{prop_name}} placeholders that match props above.
+      selector:
+        object:
+          label_field: template
+          multiple: true
+          fields:
+            template:
+              label: Template
+              required: true
+              selector:
+                text:
+                  multiline: true
+            justify:
+              label: Justify
+              selector:
+                select:
+                  translation_key: "justify"
+                  options:
+                    - "left"
+                    - "right"
+                    - "center"
+                    - "justified"
+            align:
+              label: Align
+              selector:
+                select:
+                  translation_key: "align"
+                  options:
+                    - "top"
+                    - "bottom"
+                    - "center"
+                    - "justified"
+            height:
+              label: Height (rows)
+              selector:
+                number:
+                  min: 1
+                  max: 6
+                  mode: box
+            width:
+              label: Width (columns)
+              selector:
+                number:
+                  min: 1
+                  max: 22
+                  mode: box
+            x:
+              label: Absolute X
+              selector:
+                number:
+                  min: 0
+                  max: 21
+                  mode: box
+            y:
+              label: Absolute Y
+              selector:
+                number:
+                  min: 0
+                  max: 5
+                  mode: box
+      example:
+        - template: "{{temp}} F"
+          justify: center
+          align: top
+          height: 1
+          width: 22
+        - template: "{{player}}"
+          justify: center
+          align: bottom
+          height: 2
+          width: 22
+    vbml:
+      name: Vestaboard markup language (advanced)
+      description: >-
+        Raw VBML object for power users. Overrides message and components when
+        provided. See https://docs.vestaboard.com/docs/vbml for more information.
+      selector:
+        object:
+      example:
+        props:
+          hours: "07"
+          minutes: "35"
+        components:
+          - style:
+              justify: center
+              align: center
+            template: "{{hours}}:{{minutes}}"
     strategy:
       name: Transition strategy
       description: Animation style when a new message is sent.
