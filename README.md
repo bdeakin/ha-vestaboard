@@ -67,10 +67,12 @@ After this integration is set up, you can configure the color of your Vestaboard
 
 After installing and restarting, open **Vestaboard-x** in the Home Assistant sidebar.
 
+- Save **multiple named templates** (one per game). All eight Stern 2026 leaderboard games are seeded with their sensors — edit, copy YAML, or save your own variants.
 - Add **props** (entity ID and/or Jinja template)
 - Open the **VBML editor** modal for syntax-colored JSON
 - Drag (or click) props into the markup to insert `{{prop_name}}`
 - Live validation: editor border turns green when VBML is valid, red when invalid (JSON + schema + optional device parse)
+- **Copy for automation** places a ready-to-paste `vestaboard.message` YAML block on the clipboard (`props` + `vbml`). At send time, props are resolved and merged into the VBML payload so sensor values stay live.
 - Send the message to a selected board from the panel
 
 ## Actions
@@ -121,36 +123,56 @@ action: vestaboard.message
 data:
   device_id: your_device_id
   props:
-    - name: elvira_player
+    - name: player
       entity_id: sensor.2026_leaderboard_elvira_s_house_of_horrors_top_player
-    - name: elvira_score
+    - name: score
       entity_id: sensor.2026_leaderboard_elvira_s_house_of_horrors_top_score
       template: >-
         {{ '{:,.0f}K'.format((states('sensor.2026_leaderboard_elvira_s_house_of_horrors_top_score')
         | float(0) / 1000)) }}
   components:
-    # {63}=red, {70}=black color blocks
-    - template: "{63}{63}{63}{63}{63}{63}{63}{63}{63}{63}{63}{63}{63}{63}{63}{63}{63}{63}{63}{63}{63}{63}"
-      justify: left
+    # Corner accents: {70}=black, {63}=red (other games use different accent colors)
+    - template: "{70}"
       height: 1
-      width: 22
+      width: 1
+      x: 0
+      y: 0
+    - template: "{63}"
+      height: 1
+      width: 1
+      x: 21
+      y: 0
     - template: "ELVIRA'S HOUSE\nOF HORRORS"
       justify: center
       height: 2
       width: 22
-    - template: "{{elvira_player}}"
+      x: 0
+      y: 1
+    - template: "{{player}}"
       justify: center
       height: 1
       width: 22
-    - template: "{63}{70}{63}{70}{63}{70}{63}{70}{63}{70}{63}{70}{63}{70}{63}{70}{63}{70}{63}{70}{63}{70}"
-      justify: left
-      height: 1
-      width: 22
-    - template: "TOP SCORE {{elvira_score}}"
+      x: 0
+      y: 3
+    - template: "TOP SCORE {{score}}"
       justify: center
       height: 1
-      width: 22
+      width: 20
+      x: 1
+      y: 5
+    - template: "{63}"
+      height: 1
+      width: 1
+      x: 0
+      y: 5
+    - template: "{70}"
+      height: 1
+      width: 1
+      x: 21
+      y: 5
 ```
+
+The panel ships saved templates for every Stern 2026 leaderboard game (D&D, Elvira, Godzilla, Jaws, John Wick, Jurassic Park, Pokemon, X-Men), each wired to its `top_player` / `top_score` sensors.
 
 #### Transition Strategy
 

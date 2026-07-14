@@ -15,6 +15,11 @@ from homeassistant.helpers import device_registry as dr
 from .const import DOMAIN
 from .helpers import async_get_coordinator_by_device_id
 from .services import async_resolve_props
+from .template_store import (
+    async_delete_template,
+    async_load_templates,
+    async_upsert_template,
+)
 from .vbml_schema import validate_vbml_payload
 
 _PROP_REF = re.compile(r"\{\{\s*([a-zA-Z0-9_]+)\s*\}\}")
@@ -26,6 +31,9 @@ def async_setup_websocket_api(hass: HomeAssistant) -> None:
     websocket_api.async_register_command(hass, websocket_list_devices)
     websocket_api.async_register_command(hass, websocket_validate_vbml)
     websocket_api.async_register_command(hass, websocket_resolve_props)
+    websocket_api.async_register_command(hass, websocket_list_templates)
+    websocket_api.async_register_command(hass, websocket_save_template)
+    websocket_api.async_register_command(hass, websocket_delete_template)
 
 
 @websocket_api.websocket_command(
@@ -167,3 +175,93 @@ async def websocket_resolve_props(
         )
         return
     connection.send_result(msg["id"], {"ok": True, "props": resolved})
+
+
+@websocket_api.websocket_command(
+    {
+        vol.Required("type"): f"{DOMAIN}/list_templates",
+    }
+)
+@websocket_api.async_response
+async def websocket_list_templates(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Return saved VBML templates."""
+    templates = await async_load_templates(hass)
+    connection.send_result(msg["id"], {"templates": templates})
+
+
+@websocket_api.websocket_command(
+    {
+        vol.Required("type"): f"{DOMAIN}/save_template",
+        vol.Required("name"): str,
+        vol.Required("props"): list,
+        vol.Required("vbml"): vol.Any(dict, str),
+        vol.Optional("id"): str,
+    }
+)
+@websocket_api.async_response
+async def websocket_save_template(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Create or update a named VBML template."""
+    vbml_raw = msg["vbml"]
+    if isinstance(vbml_raw, str):
+        try:
+            vbml = json.loads(vbml_raw)
+        except json.JSONDecodeError as err:
+            connection.send_result(
+                msg["id"],
+                {"ok": False, "error": f"VBML JSON is invalid: {err.msg}"},
+            )
+            return
+    else:
+        vbml = vbml_raw
+
+    try:
+        vbml = validate_vbml_payload(vbml)
+    except vol.Invalid as err:
+        connection.send_result(
+            msg["id"],
+            {"ok": False, "error": f"VBML schema error: {err}"},
+        )
+        return
+
+    try:
+        saved = await async_upsert_template(
+            hass,
+            name=msg["name"],
+            props=msg["props"],
+            vbml=vbml,
+            template_id=msg.get("id"),
+        )
+    except ValueError as err:
+        connection.send_result(msg["id"], {"ok": False, "error": str(err)})
+        return
+
+    connection.send_result(msg["id"], {"ok": True, "template": saved})
+
+
+@websocket_api.websocket_command(
+    {
+        vol.Required("type"): f"{DOMAIN}/delete_template",
+        vol.Required("id"): str,
+    }
+)
+@websocket_api.async_response
+async def websocket_delete_template(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Delete a saved template."""
+    try:
+        await async_delete_template(hass, msg["id"])
+    except ValueError as err:
+        connection.send_result(msg["id"], {"ok": False, "error": str(err)})
+        return
+    connection.send_result(msg["id"], {"ok": True})

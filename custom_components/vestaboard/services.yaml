@@ -46,8 +46,10 @@ message:
       name: Props
       description: >-
         Dynamic values from Home Assistant entities or templates. Reference them
-        in component templates as {{prop_name}}. Home Assistant Jinja belongs
-        here (not in component templates) to avoid colliding with VBML syntax.
+        in component templates as {{prop_name}}. When used together with vbml,
+        resolved props are merged into vbml.props at send time. Home Assistant
+        Jinja belongs here (not in component templates) to avoid colliding with
+        VBML syntax.
       selector:
         object:
           label_field: name
@@ -71,9 +73,9 @@ message:
               selector:
                 template:
       example:
-        - name: elvira_player
+        - name: player
           entity_id: sensor.2026_leaderboard_elvira_s_house_of_horrors_top_player
-        - name: elvira_score
+        - name: score
           entity_id: sensor.2026_leaderboard_elvira_s_house_of_horrors_top_score
           template: "{{ '{:,.0f}K'.format((states('sensor.2026_leaderboard_elvira_s_house_of_horrors_top_score') | float(0) / 1000)) }}"
     components:
@@ -142,26 +144,48 @@ message:
                   max: 5
                   mode: box
       example:
-        - template: "{63}{63}{63}{63}{63}{63}{63}{63}{63}{63}{63}{63}{63}{63}{63}{63}{63}{63}{63}{63}{63}{63}"
+        - template: "{70}"
           justify: left
           height: 1
-          width: 22
+          width: 1
+          x: 0
+          y: 0
+        - template: "{63}"
+          justify: left
+          height: 1
+          width: 1
+          x: 21
+          y: 0
         - template: "ELVIRA'S HOUSE\nOF HORRORS"
           justify: center
           height: 2
           width: 22
-        - template: "{{elvira_player}}"
+          x: 0
+          y: 1
+        - template: "{{player}}"
           justify: center
           height: 1
           width: 22
-        - template: "{63}{70}{63}{70}{63}{70}{63}{70}{63}{70}{63}{70}{63}{70}{63}{70}{63}{70}{63}{70}{63}{70}"
+          x: 0
+          y: 3
+        - template: "TOP SCORE {{score}}"
+          justify: center
+          height: 1
+          width: 20
+          x: 1
+          y: 5
+        - template: "{63}"
           justify: left
           height: 1
-          width: 22
-        - template: "TOP SCORE {{elvira_score}}"
-          justify: center
+          width: 1
+          x: 0
+          y: 5
+        - template: "{70}"
+          justify: left
           height: 1
-          width: 22
+          width: 1
+          x: 21
+          y: 5
     vbml:
       name: Vestaboard markup language (advanced)
       description: >-
@@ -171,39 +195,51 @@ message:
         object:
       example:
         props:
-          elvira_player: "NJPINBLAKE"
-          elvira_score: "1,234K"
+          player: "NJPINBLAKE"
+          score: "1,234K"
         components:
           - style:
               justify: left
-              align: top
               height: 1
-              width: 22
-            template: "{63}{63}{63}{63}{63}{63}{63}{63}{63}{63}{63}{63}{63}{63}{63}{63}{63}{63}{63}{63}{63}{63}"
+              width: 1
+              absolutePosition: {x: 0, y: 0}
+            template: "{70}"
+          - style:
+              justify: left
+              height: 1
+              width: 1
+              absolutePosition: {x: 21, y: 0}
+            template: "{63}"
           - style:
               justify: center
-              align: top
               height: 2
               width: 22
+              absolutePosition: {x: 0, y: 1}
             template: "ELVIRA'S HOUSE\nOF HORRORS"
           - style:
               justify: center
-              align: top
               height: 1
               width: 22
-            template: "{{elvira_player}}"
-          - style:
-              justify: left
-              align: top
-              height: 1
-              width: 22
-            template: "{63}{70}{63}{70}{63}{70}{63}{70}{63}{70}{63}{70}{63}{70}{63}{70}{63}{70}{63}{70}{63}{70}"
+              absolutePosition: {x: 0, y: 3}
+            template: "{{player}}"
           - style:
               justify: center
-              align: top
               height: 1
-              width: 22
-            template: "TOP SCORE {{elvira_score}}"
+              width: 20
+              absolutePosition: {x: 1, y: 5}
+            template: "TOP SCORE {{score}}"
+          - style:
+              justify: left
+              height: 1
+              width: 1
+              absolutePosition: {x: 0, y: 5}
+            template: "{63}"
+          - style:
+              justify: left
+              height: 1
+              width: 1
+              absolutePosition: {x: 21, y: 5}
+            template: "{70}"
     strategy:
       name: Transition strategy
       description: Animation style when a new message is sent.

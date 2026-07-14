@@ -6,9 +6,11 @@
 
 ```text
 Sidebar: Vestaboard-x panel
+  ├─ named template library (HA Store)
   ├─ props builder
   └─ VBML modal (highlight + validate + drag/drop props)
-        │  websocket: validate_vbml / resolve_props
+        │  websocket: templates CRUD / validate_vbml / resolve_props
+        │  copy YAML → Automations
         ▼
 Developer Tools / Automation UI
         │
@@ -58,7 +60,8 @@ UI fields (`justify`, `align`, `height`, `width`, `x`, `y`) become a VBML `style
 - Static assets: `custom_components/vestaboard/www/vestaboard-x-panel.js`
 - Registered at `/vestaboard_static/` + sidebar path `vestaboard-x`
 - Shared schema: `vbml_schema.py` used by services and websocket validation
-- Default editor VBML: Elvira's House of Horrors (red/black bars, title, player, `TOP SCORE` + K-formatted score)
+- Default editor VBML: Elvira's House of Horrors (corner black/red dots, title, player, `TOP SCORE` + K-formatted score)
+- Templates persisted via `helpers.storage` key `vestaboard_templates`
 
 ## Branding
 

@@ -10,7 +10,8 @@ Personal fork (**Vestaboard-x**) to make Vestaboard VBML layouts authorable from
 - HA Jinja belongs in prop `template` fields; component templates use VBML `{{prop}}` only.
 - Preserve simple `message` + justify/align path and raw `vbml` escape hatch.
 - Priority: `vbml` > `components`/`props` > `message`.
-- Default VBML is a single-game Elvira board (title, player, `TOP SCORE` + `#,##0K`) with red/black color blocks; other games are separate manual actions.
+- Seed templates for each Stern 2026 game with its leaderboard sensors; corner-dot layout; `player`/`score` props; `TOP SCORE` + `#,##0K`.
+- Support multiple saved game templates and one-click copy of automation YAML (`props` + `vbml`).
 
 ## Future prompts
 

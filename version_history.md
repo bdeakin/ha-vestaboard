@@ -1,5 +1,19 @@
 # Version history
 
+## 0.5.2
+
+- Seed VBML templates for all Stern 2026 leaderboard games with their `top_player` / `top_score` entities (shared `player`/`score` props, corner-dot layout, per-game accent color).
+
+## 0.5.1
+
+- Elvira layout: black/red corner dots (no full color bars); title, player, then `TOP SCORE` + value on the bottom line.
+
+## 0.5.0
+
+- Vestaboard-x panel can save/load/delete multiple named VBML templates (persisted in Home Assistant storage).
+- **Copy for automation** copies `vestaboard.message` YAML with live `props` + `vbml`.
+- Message action merges structured `props` into `vbml.props` when both are provided.
+
 ## 0.4.5
 
 - Elvira last line shows `TOP SCORE` next to the formatted score value.

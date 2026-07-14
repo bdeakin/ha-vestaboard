@@ -183,8 +183,18 @@ async def async_build_vbml(hass: HomeAssistant, call: ServiceCall) -> dict[str, 
     """Build a VBML payload from service call data.
 
     Priority: raw vbml > structured components/props > plain message.
+
+    When both ``vbml`` and structured ``props`` are provided, resolve the props
+    and merge them into ``vbml["props"]`` so saved game templates stay live.
     """
     if vbml := call.data.get(CONF_VBML):
+        # Copy so we do not mutate the service call data in place
+        vbml = dict(vbml)
+        if call.data.get(CONF_PROPS):
+            resolved = await async_resolve_props(hass, call.data.get(CONF_PROPS))
+            merged = dict(vbml.get(CONF_PROPS) or {})
+            merged.update(resolved)
+            vbml[CONF_PROPS] = merged
         return vbml
 
     if components := call.data.get(CONF_COMPONENTS):

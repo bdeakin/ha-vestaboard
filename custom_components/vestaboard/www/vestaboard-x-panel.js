@@ -12,6 +12,9 @@ class VestaboardXPanel extends HTMLElement {
     this._deviceId = "";
     this._props = this._defaultProps();
     this._vbmlText = this._defaultVbml();
+    this._templates = [];
+    this._selectedTemplateId = "";
+    this._templateName = "Elvira's House of Horrors";
     this._modalOpen = false;
     this._validation = { valid: null, errors: [], warnings: [] };
     this._validateTimer = null;
@@ -24,6 +27,7 @@ class VestaboardXPanel extends HTMLElement {
     if (!this._devicesLoaded) {
       this._devicesLoaded = true;
       this._loadDevices();
+      this._loadTemplates();
     }
   }
 
@@ -45,52 +49,100 @@ class VestaboardXPanel extends HTMLElement {
   }
 
   _defaultProps() {
-    // Single-game template: Elvira's House of Horrors (duplicate + edit for other games)
-    const elviraScore =
+    // Matches seeded Elvira template (all games use player/score props)
+    const scoreEntity =
       "sensor.2026_leaderboard_elvira_s_house_of_horrors_top_score";
-    const elviraPlayer =
-      "sensor.2026_leaderboard_elvira_s_house_of_horrors_top_player";
     return [
       {
-        name: "elvira_player",
-        entity_id: elviraPlayer,
+        name: "player",
+        entity_id:
+          "sensor.2026_leaderboard_elvira_s_house_of_horrors_top_player",
         template: "",
       },
       {
-        name: "elvira_score",
-        entity_id: elviraScore,
-        template: this._scoreKTemplate(elviraScore),
+        name: "score",
+        entity_id: scoreEntity,
+        template: this._scoreKTemplate(scoreEntity),
       },
     ];
   }
 
   _defaultVbml() {
-    // Flagship 6x22 — Elvira red ({63}) / black ({70}) palette
-    const redBar = "{63}".repeat(22);
-    const redBlack = "{63}{70}".repeat(11); // 22 cols alternating
+    // Flagship 6x22 — corner dots, title, player, TOP SCORE
+    // {63}=red, {70}=black
     return JSON.stringify(
       {
         props: {},
         components: [
           {
-            style: { justify: "left", align: "top", height: 1, width: 22 },
-            template: redBar,
+            style: {
+              justify: "left",
+              align: "top",
+              height: 1,
+              width: 1,
+              absolutePosition: { x: 0, y: 0 },
+            },
+            template: "{70}",
           },
           {
-            style: { justify: "center", align: "top", height: 2, width: 22 },
+            style: {
+              justify: "left",
+              align: "top",
+              height: 1,
+              width: 1,
+              absolutePosition: { x: 21, y: 0 },
+            },
+            template: "{63}",
+          },
+          {
+            style: {
+              justify: "center",
+              align: "top",
+              height: 2,
+              width: 22,
+              absolutePosition: { x: 0, y: 1 },
+            },
             template: "ELVIRA'S HOUSE\nOF HORRORS",
           },
           {
-            style: { justify: "center", align: "top", height: 1, width: 22 },
-            template: "{{elvira_player}}",
+            style: {
+              justify: "center",
+              align: "top",
+              height: 1,
+              width: 22,
+              absolutePosition: { x: 0, y: 3 },
+            },
+            template: "{{player}}",
           },
           {
-            style: { justify: "left", align: "top", height: 1, width: 22 },
-            template: redBlack,
+            style: {
+              justify: "center",
+              align: "top",
+              height: 1,
+              width: 20,
+              absolutePosition: { x: 1, y: 5 },
+            },
+            template: "TOP SCORE {{score}}",
           },
           {
-            style: { justify: "center", align: "top", height: 1, width: 22 },
-            template: "TOP SCORE {{elvira_score}}",
+            style: {
+              justify: "left",
+              align: "top",
+              height: 1,
+              width: 1,
+              absolutePosition: { x: 0, y: 5 },
+            },
+            template: "{63}",
+          },
+          {
+            style: {
+              justify: "left",
+              align: "top",
+              height: 1,
+              width: 1,
+              absolutePosition: { x: 21, y: 5 },
+            },
+            template: "{70}",
           },
         ],
       },
@@ -114,6 +166,257 @@ class VestaboardXPanel extends HTMLElement {
       this._sendStatus = `Failed to load devices: ${err.message || err}`;
       this._render();
     }
+  }
+
+  async _loadTemplates(selectId) {
+    if (!this._hass) return;
+    try {
+      const result = await this._hass.connection.sendMessagePromise({
+        type: "vestaboard/list_templates",
+      });
+      this._templates = result.templates || [];
+      const preferred =
+        selectId ||
+        this._selectedTemplateId ||
+        (this._templates[0] && this._templates[0].id);
+      if (preferred) {
+        const match = this._templates.find((t) => t.id === preferred);
+        if (match) this._applyTemplate(match, false);
+      }
+      this._render();
+    } catch (err) {
+      this._sendStatus = `Failed to load templates: ${err.message || err}`;
+      this._render();
+    }
+  }
+
+  _applyTemplate(template, render = true) {
+    this._selectedTemplateId = template.id || "";
+    this._templateName = template.name || "";
+    this._props = (template.props || []).map((p) => ({
+      name: p.name || "",
+      entity_id: p.entity_id || "",
+      template: p.template || "",
+      attribute: p.attribute || "",
+    }));
+    const vbml = template.vbml || { props: {}, components: [] };
+    this._vbmlText =
+      typeof vbml === "string" ? vbml : JSON.stringify(vbml, null, 2);
+    if (render) this._render();
+  }
+
+  _currentPropsPayload() {
+    return this._props
+      .filter((p) => p.name && (p.entity_id || p.template))
+      .map((p) => {
+        const item = { name: p.name };
+        if (p.entity_id) item.entity_id = p.entity_id;
+        if (p.attribute) item.attribute = p.attribute;
+        if (p.template) item.template = p.template;
+        return item;
+      });
+  }
+
+  async _saveTemplate(asNew) {
+    if (!this._hass) return;
+    const name = (this._templateName || "").trim();
+    if (!name) {
+      this._sendStatus = "Enter a template name before saving.";
+      this._render();
+      return;
+    }
+    let vbml;
+    try {
+      vbml = JSON.parse(this._vbmlText);
+    } catch (err) {
+      this._sendStatus = `Cannot save — VBML JSON invalid: ${err.message}`;
+      this._render();
+      return;
+    }
+    const payload = {
+      type: "vestaboard/save_template",
+      name,
+      props: this._currentPropsPayload(),
+      vbml,
+    };
+    if (!asNew && this._selectedTemplateId) payload.id = this._selectedTemplateId;
+    try {
+      const result = await this._hass.connection.sendMessagePromise(payload);
+      if (!result.ok) {
+        this._sendStatus = result.error || "Save failed.";
+        this._render();
+        return;
+      }
+      this._sendStatus = `Saved template "${result.template.name}".`;
+      await this._loadTemplates(result.template.id);
+    } catch (err) {
+      this._sendStatus = `Save failed: ${err.message || err}`;
+      this._render();
+    }
+  }
+
+  async _deleteTemplate() {
+    if (!this._hass || !this._selectedTemplateId) {
+      this._sendStatus = "Select a saved template to delete.";
+      this._render();
+      return;
+    }
+    const current = this._templates.find((t) => t.id === this._selectedTemplateId);
+    if (
+      current &&
+      !window.confirm(`Delete template "${current.name}"? This cannot be undone.`)
+    ) {
+      return;
+    }
+    try {
+      const result = await this._hass.connection.sendMessagePromise({
+        type: "vestaboard/delete_template",
+        id: this._selectedTemplateId,
+      });
+      if (!result.ok) {
+        this._sendStatus = result.error || "Delete failed.";
+        this._render();
+        return;
+      }
+      this._selectedTemplateId = "";
+      this._sendStatus = "Template deleted.";
+      await this._loadTemplates();
+    } catch (err) {
+      this._sendStatus = `Delete failed: ${err.message || err}`;
+      this._render();
+    }
+  }
+
+  _yamlScalar(value) {
+    if (value === null || value === undefined) return '""';
+    if (typeof value === "number" || typeof value === "boolean") return String(value);
+    const text = String(value);
+    if (text === "") return '""';
+    if (
+      /[:#{}[\],&*?|>!%@`]/.test(text) ||
+      /^\s|\s$/.test(text) ||
+      /\n/.test(text) ||
+      text.includes("{{")
+    ) {
+      return `"${text
+        .replace(/\\/g, "\\\\")
+        .replace(/"/g, '\\"')
+        .replace(/\n/g, "\\n")}"`;
+    }
+    return text;
+  }
+
+  _yamlDump(value, indent = 0) {
+    const pad = "  ".repeat(indent);
+    if (Array.isArray(value)) {
+      if (!value.length) return `${pad}[]`;
+      return value
+        .map((item) => {
+          if (item !== null && typeof item === "object" && !Array.isArray(item)) {
+            const keys = Object.keys(item);
+            if (!keys.length) return `${pad}- {}`;
+            const firstKey = keys[0];
+            const firstVal = item[firstKey];
+            let block = "";
+            if (firstVal !== null && typeof firstVal === "object") {
+              block += `${pad}- ${firstKey}:\n${this._yamlDump(firstVal, indent + 2)}\n`;
+            } else {
+              block += `${pad}- ${firstKey}: ${this._yamlScalar(firstVal)}\n`;
+            }
+            for (const key of keys.slice(1)) {
+              const child = item[key];
+              if (child !== null && typeof child === "object") {
+                block += `${pad}  ${key}:\n${this._yamlDump(child, indent + 2)}\n`;
+              } else {
+                block += `${pad}  ${key}: ${this._yamlScalar(child)}\n`;
+              }
+            }
+            return block.replace(/\n$/, "");
+          }
+          return `${pad}- ${this._yamlScalar(item)}`;
+        })
+        .join("\n");
+    }
+    if (value !== null && typeof value === "object") {
+      const keys = Object.keys(value);
+      if (!keys.length) return `${pad}{}`;
+      return keys
+        .map((key) => {
+          const child = value[key];
+          if (child !== null && typeof child === "object") {
+            const nested = this._yamlDump(child, indent + 1);
+            if (nested.trim() === "[]" || nested.trim() === "{}") {
+              return `${pad}${key}: ${nested.trim()}`;
+            }
+            return `${pad}${key}:\n${nested}`;
+          }
+          return `${pad}${key}: ${this._yamlScalar(child)}`;
+        })
+        .join("\n");
+    }
+    return `${pad}${this._yamlScalar(value)}`;
+  }
+
+  _buildAutomationYaml() {
+    let vbml;
+    try {
+      vbml = JSON.parse(this._vbmlText);
+      // Keep placeholders in templates; service merges resolved props at runtime
+      vbml.props = {};
+    } catch (err) {
+      throw new Error(`VBML JSON invalid: ${err.message}`);
+    }
+    const data = {
+      device_id: this._deviceId || "YOUR_VESTABOARD_DEVICE_ID",
+      props: this._currentPropsPayload(),
+      vbml,
+    };
+    return `action: vestaboard.message\ndata:\n${this._yamlDump(data, 1)}`;
+  }
+
+  async _copyAutomation() {
+    try {
+      const yaml = this._buildAutomationYaml();
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(yaml);
+      } else {
+        const ta = document.createElement("textarea");
+        ta.value = yaml;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+      }
+      this._sendStatus =
+        "Copied vestaboard.message YAML to the clipboard — paste into your automation.";
+    } catch (err) {
+      this._sendStatus = `Copy failed: ${err.message || err}`;
+    }
+    this._render();
+  }
+
+  _newBlankTemplate() {
+    this._selectedTemplateId = "";
+    this._templateName = "New game template";
+    this._props = [
+      { name: "player", entity_id: "", template: "" },
+      { name: "score", entity_id: "", template: "" },
+    ];
+    this._vbmlText = JSON.stringify(
+      {
+        props: {},
+        components: [
+          {
+            style: { justify: "center", align: "center", height: 6, width: 22 },
+            template: "GAME TITLE\n\n{{player}}\n\nTOP SCORE {{score}}",
+          },
+        ],
+      },
+      null,
+      2
+    );
+    this._sendStatus = "Drafting a new template — edit, then Save as new.";
+    this._render();
   }
 
   _escapeHtml(text) {
@@ -365,6 +668,36 @@ class VestaboardXPanel extends HTMLElement {
     root.querySelector("#device")?.addEventListener("change", (e) => {
       this._deviceId = e.target.value;
     });
+    root.querySelector("#template-select")?.addEventListener("change", (e) => {
+      const id = e.target.value;
+      if (!id) {
+        this._selectedTemplateId = "";
+        return;
+      }
+      const match = this._templates.find((t) => t.id === id);
+      if (match) this._applyTemplate(match, true);
+    });
+    root.querySelector("#template-name")?.addEventListener("change", (e) => {
+      this._templateName = e.target.value;
+    });
+    root.querySelector("#template-name")?.addEventListener("input", (e) => {
+      this._templateName = e.target.value;
+    });
+    root.querySelector("#save-template")?.addEventListener("click", () =>
+      this._saveTemplate(false)
+    );
+    root.querySelector("#save-template-as")?.addEventListener("click", () =>
+      this._saveTemplate(true)
+    );
+    root.querySelector("#delete-template")?.addEventListener("click", () =>
+      this._deleteTemplate()
+    );
+    root.querySelector("#new-template")?.addEventListener("click", () =>
+      this._newBlankTemplate()
+    );
+    root.querySelector("#copy-automation")?.addEventListener("click", () =>
+      this._copyAutomation()
+    );
     root.querySelector("#add-prop")?.addEventListener("click", () => this._addProp());
     root.querySelectorAll("[data-remove-prop]").forEach((btn) => {
       btn.addEventListener("click", () =>
@@ -496,8 +829,14 @@ class VestaboardXPanel extends HTMLElement {
         color: var(--primary-text-color);
       }
       .row { display: grid; grid-template-columns: 1fr 1.4fr 1.4fr auto; gap: 8px; align-items: end; margin-bottom: 8px; }
+      .template-grid {
+        display: grid;
+        grid-template-columns: 1.2fr 1fr;
+        gap: 12px;
+        align-items: end;
+      }
       @media (max-width: 800px) {
-        .row { grid-template-columns: 1fr; }
+        .row, .template-grid { grid-template-columns: 1fr; }
       }
       .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
       button {
@@ -701,16 +1040,52 @@ class VestaboardXPanel extends HTMLElement {
       </div>`
       : "";
 
+    const templateOptions = [
+      `<option value="">— unsaved draft —</option>`,
+      ...this._templates.map(
+        (t) =>
+          `<option value="${this._escapeHtml(t.id)}" ${
+            t.id === this._selectedTemplateId ? "selected" : ""
+          }>${this._escapeHtml(t.name)}</option>`
+      ),
+    ].join("");
+
     this.shadowRoot.innerHTML = `
       <style>${this._styles()}</style>
       <h1>Vestaboard-x</h1>
-      <p class="lead">Build VBML with Home Assistant props, then open the editor for syntax validation and drag-and-drop insertion.</p>
+      <p class="lead">Save a VBML template per game, then copy YAML into a <code>vestaboard.message</code> automation.</p>
       <div class="card">
         <label for="device">Device</label>
         <select id="device">
           <option value="">Select a Vestaboard…</option>
           ${deviceOptions}
         </select>
+      </div>
+      <div class="card">
+        <h2 style="margin:0 0 12px;font-size:1.1rem;">Saved templates</h2>
+        <div class="template-grid">
+          <div>
+            <label for="template-select">Load template</label>
+            <select id="template-select">${templateOptions}</select>
+          </div>
+          <div>
+            <label for="template-name">Template name</label>
+            <input id="template-name" type="text" value="${this._escapeHtml(
+              this._templateName || ""
+            )}" placeholder="e.g. Godzilla" />
+          </div>
+        </div>
+        <div class="actions">
+          <button type="button" id="save-template">Save</button>
+          <button class="secondary" type="button" id="save-template-as">Save as new</button>
+          <button class="secondary" type="button" id="new-template">New draft</button>
+          <button class="danger" type="button" id="delete-template">Delete</button>
+          <button type="button" id="copy-automation">Copy for automation</button>
+        </div>
+        <p class="hint" style="margin-top:10px;">
+          Copy produces <code>action: vestaboard.message</code> YAML with live <code>props</code> + <code>vbml</code>.
+          Duplicate a game template with <strong>Save as new</strong>, then swap entities and title text.
+        </p>
       </div>
       <div class="card">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
