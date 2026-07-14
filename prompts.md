@@ -6,14 +6,16 @@ Personal fork (**Vestaboard-x**) to make Vestaboard VBML layouts authorable from
 
 ## Constraints honored
 
-- Enhance `vestaboard.message` only (no custom panel/card in 0.3.0).
+- Sidebar Vestaboard-x panel hosts the VBML modal (highlight, validate, drag/drop); action fields remain available for automations.
 - HA Jinja belongs in prop `template` fields; component templates use VBML `{{prop}}` only.
 - Preserve simple `message` + justify/align path and raw `vbml` escape hatch.
 - Priority: `vbml` > `components`/`props` > `message`.
+- Default props/VBML target Stern `sensor.2026_leaderboard_*` entities.
 
-## Future prompts (not in this release)
+## Future prompts
 
-- Visual board preview panel / Lovelace card.
+- Visual board character preview inside the VBML modal.
+- ha-entity-picker in the props form (instead of free-text entity IDs).
 - Live character-count validation against model width/height in the UI.
 - Re-merge selected upstream releases on a regular cadence.
 - Keep HACS installable without requiring GitHub Release zip assets unless/until a release pipeline is maintained on the fork.

@@ -63,6 +63,16 @@ After this integration is set up, you can configure the color of your Vestaboard
 | Flagship | <img alt="Flagship Black Connected" src="images/flagship-black.png" width="100%"> | <img alt="Flagship White Connected" src="images/flagship-white.png" width="100%"> |
 | Note     |     <img alt="Note Black Connected" src="images/note-black.png" width="70%">      |     <img alt="Note White Connected" src="images/note-white.png" width="70%">      |
 
+## Vestaboard-x panel (VBML editor)
+
+After installing and restarting, open **Vestaboard-x** in the Home Assistant sidebar.
+
+- Add **props** (entity ID and/or Jinja template)
+- Open the **VBML editor** modal for syntax-colored JSON
+- Drag (or click) props into the markup to insert `{{prop_name}}`
+- Live validation: editor border turns green when VBML is valid, red when invalid (JSON + schema + optional device parse)
+- Send the message to a selected board from the panel
+
 ## Actions
 
 ### `vestaboard.message` - Send a message to one or more Vestaboards

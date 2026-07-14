@@ -5,6 +5,11 @@
 `vestaboard` is a HACS Home Assistant integration that talks to Vestaboard displays over the Local API. This fork keeps the upstream device/client/coordinator stack and extends the `vestaboard.message` action so layouts can be built from HA entities without authoring raw VBML JSON.
 
 ```text
+Sidebar: Vestaboard-x panel
+  ├─ props builder
+  └─ VBML modal (highlight + validate + drag/drop props)
+        │  websocket: validate_vbml / resolve_props
+        ▼
 Developer Tools / Automation UI
         │
         ▼
@@ -47,6 +52,12 @@ UI fields (`justify`, `align`, `height`, `width`, `x`, `y`) become a VBML `style
 - Coordinator polling, quiet hours, temporary messages, transitions
 - Image / sensor / binary_sensor / button platforms
 - `pyvbml` board sizing forced to the discovered model dimensions
+
+## Frontend panel
+
+- Static assets: `custom_components/vestaboard/www/vestaboard-x-panel.js`
+- Registered at `/vestaboard_static/` + sidebar path `vestaboard-x`
+- Shared schema: `vbml_schema.py` used by services and websocket validation
 
 ## Branding
 

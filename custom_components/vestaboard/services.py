@@ -41,61 +41,7 @@ from .const import (
     SERVICE_MESSAGE,
 )
 from .helpers import async_get_coordinator_by_device_id
-
-_calendar = vol.Schema(
-    {
-        vol.Required("month"): vol.All(vol.Coerce(int), vol.Range(min=1, max=12)),
-        vol.Required("year"): vol.Coerce(int),
-        vol.Optional("defaultDayColor"): vol.All(
-            vol.Coerce(int), vol.Range(min=63, max=70)
-        ),
-        vol.Optional("days"): vol.Coerce(dict[str, int]),
-        vol.Optional("hideSMTWTFS"): vol.Coerce(bool),
-        vol.Optional("hideDates"): vol.Coerce(bool),
-        vol.Optional("hideMonthYear"): vol.Coerce(bool),
-    }
-)
-_character_codes = vol.All(vol.Coerce(int), vol.Range(min=0, max=71))
-_random_colors = vol.Schema(
-    {vol.Optional("colors"): [vol.All(int, vol.Range(min=63, max=71))]}
-)
-_raw_characters = vol.All(cv.ensure_list, [vol.All(cv.ensure_list, [_character_codes])])
-_style = vol.Schema(
-    {
-        vol.Optional(CONF_HEIGHT): vol.All(vol.Coerce(int), vol.Range(min=1, max=6)),
-        vol.Optional(CONF_WIDTH): vol.All(vol.Coerce(int), vol.Range(min=1, max=22)),
-        vol.Optional(CONF_JUSTIFY): vol.In(ALIGN_HORIZONTAL),
-        vol.Optional(CONF_ALIGN): vol.In(ALIGN_VERTICAL),
-        vol.Optional("absolutePosition"): vol.Schema(
-            {
-                vol.Required(CONF_X): vol.All(vol.Coerce(int), vol.Range(min=0, max=21)),
-                vol.Required(CONF_Y): vol.All(vol.Coerce(int), vol.Range(min=0, max=5)),
-            }
-        ),
-    }
-)
-_component = vol.All(
-    vol.Schema(
-        {
-            vol.Optional(CONF_TEMPLATE): cv.string,
-            vol.Optional("rawCharacters"): _raw_characters,
-            vol.Optional("calendar"): _calendar,
-            vol.Optional("randomColors"): _random_colors,
-            vol.Optional("style"): _style,
-        }
-    ),
-    cv.has_at_least_one_key(
-        CONF_TEMPLATE, "rawCharacters", "calendar", "randomColors"
-    ),
-)
-
-VBML_SCHEMA = vol.Schema(
-    {
-        vol.Optional(CONF_PROPS): {cv.string: cv.string},
-        # Styles to set the size of the rendered array of arrays is purposefully missing and controlled by code
-        vol.Required(CONF_COMPONENTS): vol.All(cv.ensure_list, [_component]),
-    }
-)
+from .vbml_schema import VBML_SCHEMA
 
 
 def _validate_position(value: dict[str, Any]) -> dict[str, Any]:

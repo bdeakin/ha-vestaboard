@@ -6,6 +6,11 @@
     "@natekspencer"
   ],
   "config_flow": true,
+  "dependencies": [
+    "http",
+    "frontend",
+    "websocket_api"
+  ],
   "dhcp": [
     {
       "macaddress": "4C93A60*"
@@ -23,5 +28,5 @@
     "pyvbml==0.3.1",
     "Pillow"
   ],
-  "version": "0.3.1"
+  "version": "0.4.1"
 }

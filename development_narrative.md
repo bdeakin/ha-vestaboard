@@ -33,3 +33,7 @@ HACS/integration display name is **Vestaboard-x** (domain remains `vestaboard` f
 ## HACS install
 
 Upstream uses `zip_release` + `vestaboard.zip` on GitHub Releases. This fork ships without that flag so HACS downloads from the repository directly; otherwise downloads 404 when no release asset exists.
+
+## VBML modal panel
+
+Native action selectors cannot host syntax highlighting or drag-and-drop, so a sidebar panel provides a pop-out VBML modal: JSON color coding, websocket-backed validation, and prop chips that insert `{{name}}` into templates. Defaults preload Stern `sensor.2026_leaderboard_*` entities for a ready-to-edit high-score board.

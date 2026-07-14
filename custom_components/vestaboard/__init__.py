@@ -11,8 +11,10 @@ from homeassistant.helpers.typing import ConfigType
 
 from .const import DATA_HASS_CONFIG, DOMAIN
 from .coordinator import VestaboardConfigEntry, VestaboardCoordinator
+from .frontend import async_setup_frontend
 from .helpers import create_client
 from .services import async_setup_services
+from .websocket_api import async_setup_websocket_api
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -26,8 +28,11 @@ PLATFORMS = [
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Set up the Vestaboard integration."""
+    hass.data.setdefault(DOMAIN, {})
+    hass.data[DOMAIN][DATA_HASS_CONFIG] = config
     async_setup_services(hass)
-    hass.data[DOMAIN] = {DATA_HASS_CONFIG: config}
+    async_setup_websocket_api(hass)
+    await async_setup_frontend(hass)
     return True
 
 
