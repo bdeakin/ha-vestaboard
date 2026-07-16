@@ -24,6 +24,7 @@ from .const import (
     CONF_DURATION,
     CONF_ENTITY_ID,
     CONF_HEIGHT,
+    CONF_INTRO_DURATION,
     CONF_JUSTIFY,
     CONF_MESSAGE,
     CONF_NAME,
@@ -38,6 +39,7 @@ from .const import (
     CONF_WIDTH,
     CONF_X,
     CONF_Y,
+    DEFAULT_INTRO_DURATION,
     DOMAIN,
     SERVICE_MESSAGE,
     SERVICE_SEND_TEMPLATE,
@@ -118,6 +120,9 @@ SERVICE_SEND_TEMPLATE_SCHEMA = vol.Schema(
         vol.Optional(CONF_STEP_INTERVAL_MS): cv.positive_int,
         vol.Optional(CONF_DURATION): vol.All(
             vol.Coerce(int), vol.Range(min=10, max=43200)
+        ),
+        vol.Optional(CONF_INTRO_DURATION): vol.All(
+            vol.Coerce(int), vol.Range(min=3, max=60)
         ),
         vol.Optional(CONF_BYPASS_QUIET_HOURS): cv.boolean,
     }
@@ -290,6 +295,95 @@ async def async_deliver_vbml(
                 await coordinator.write_and_update_state(json)
 
 
+async def async_deliver_intro_then_vbml(
+    hass: HomeAssistant,
+    call: ServiceCall,
+    intro_vbml: dict[str, Any],
+    score_vbml: dict[str, Any],
+) -> None:
+    """Show a pixel-art intro briefly, then the score board.
+
+    The score layout is stored as the new persistent message. The intro is
+    written as a temporary message so expiration reveals the score.
+    """
+    intro_seconds = int(
+        call.data.get(CONF_INTRO_DURATION, DEFAULT_INTRO_DURATION)
+    )
+    base_json: dict[str, Any] = {}
+    if strategy := call.data.get(CONF_STRATEGY):
+        base_json[CONF_STRATEGY] = strategy
+        if step_size := call.data.get(CONF_STEP_SIZE):
+            base_json[CONF_STEP_SIZE] = step_size
+        if step_interval := call.data.get(CONF_STEP_INTERVAL_MS):
+            base_json[CONF_STEP_INTERVAL_MS] = step_interval
+
+    for device_id in call.data[CONF_DEVICE_ID]:
+        coordinator = async_get_coordinator_by_device_id(hass, device_id)
+        if not call.data.get(CONF_BYPASS_QUIET_HOURS) and coordinator.quiet_hours():
+            continue
+
+        if coordinator.model is None:
+            await coordinator.async_request_refresh()
+        if coordinator.model is None:
+            raise HomeAssistantError("Vestaboard model is not initialized")
+
+        try:
+            intro_rows = coordinator.model.parse_vbml(intro_vbml)
+            score_rows = coordinator.model.parse_vbml(score_vbml)
+        except Exception as ex:
+            raise HomeAssistantError(f"Invalid VBML payload: {ex}") from ex
+
+        transition = dict(base_json)
+        if CONF_STRATEGY not in transition:
+            transition.update(coordinator.default_transition_settings)
+
+        # Score becomes the persistent board once the intro expires
+        previous_persistent = coordinator.persistent_message
+        score_duration = call.data.get(CONF_DURATION)
+
+        if score_duration:
+            # Intro → score (temporary) → previous persistent
+            coordinator.persistent_message = previous_persistent
+
+            async def _after_intro(
+                _now, *, _coord=coordinator, _score=score_rows, _trans=transition
+            ) -> None:
+                _coord.temporary_message_expiration = None
+                if _coord._cancel_cb:
+                    _coord._cancel_cb()
+                    _coord._cancel_cb = None
+                expiration = dt_now() + timedelta(seconds=score_duration)
+                _coord.temporary_message_expiration = expiration
+                await _coord.write_and_update_state(
+                    {"characters": _score, **_trans}
+                )
+                _coord._cancel_cb = async_track_point_in_time(
+                    hass, _coord._handle_temporary_message_expiration, expiration
+                )
+
+            if coordinator._cancel_cb:
+                coordinator._cancel_cb()
+            expiration = dt_now() + timedelta(seconds=intro_seconds)
+            coordinator.temporary_message_expiration = expiration
+            await coordinator.write_and_update_state(
+                {"characters": intro_rows, **transition}
+            )
+            coordinator._cancel_cb = async_track_point_in_time(
+                hass, _after_intro, expiration
+            )
+        else:
+            coordinator.persistent_message = score_rows
+            if coordinator._cancel_cb:
+                coordinator._cancel_cb()
+            expiration = dt_now() + timedelta(seconds=intro_seconds)
+            coordinator.temporary_message_expiration = expiration
+            await coordinator.write_and_update_state(
+                {"characters": intro_rows, **transition}
+            )
+            coordinator._cancel_cb = async_track_point_in_time(
+                hass, coordinator._handle_temporary_message_expiration, expiration
+            )
+
 async def async_refresh_send_template_schema(hass: HomeAssistant) -> None:
     """Refresh the send_template service UI dropdown from saved templates."""
     templates = await async_load_templates(hass)
@@ -372,13 +466,27 @@ async def async_refresh_send_template_schema(hass: HomeAssistant) -> None:
                 CONF_DURATION: {
                     "name": "Duration",
                     "description": (
-                        "Display the message temporarily, then revert "
-                        "to the previous persistent message."
+                        "After any intro, display the score board temporarily, "
+                        "then revert to the previous persistent message."
                     ),
                     "selector": {
                         "number": {
                             "min": 10,
                             "max": 43200,
+                            "unit_of_measurement": "seconds",
+                        }
+                    },
+                },
+                CONF_INTRO_DURATION: {
+                    "name": "Intro duration",
+                    "description": (
+                        "How long to show the game's pixel-art intro before the "
+                        f"score board (default {DEFAULT_INTRO_DURATION}s)."
+                    ),
+                    "selector": {
+                        "number": {
+                            "min": 3,
+                            "max": 60,
                             "unit_of_measurement": "seconds",
                         }
                     },
@@ -422,7 +530,12 @@ def async_setup_services(hass: HomeAssistant) -> None:
         vbml[CONF_PROPS] = await async_resolve_props(
             hass, list(saved.get(CONF_PROPS) or [])
         )
-        await async_deliver_vbml(hass, call, vbml)
+
+        intro = saved.get("intro")
+        if isinstance(intro, dict) and intro.get(CONF_COMPONENTS):
+            await async_deliver_intro_then_vbml(hass, call, dict(intro), vbml)
+        else:
+            await async_deliver_vbml(hass, call, vbml)
 
     hass.services.async_register(
         DOMAIN,

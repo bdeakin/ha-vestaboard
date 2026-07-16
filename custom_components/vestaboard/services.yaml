@@ -292,7 +292,8 @@ send_template:
   description: >
     Send a VBML layout saved in the Vestaboard-x panel (for example a Stern
     game top-score board). Choose the template from the dropdown — no need to
-    paste VBML into the automation.
+    paste VBML into the automation. Game templates show a short pixel-art intro
+    before the high-score board.
   fields:
     device_id:
       name: Device
@@ -348,12 +349,25 @@ send_template:
       example: 500
     duration:
       name: Duration
-      description: Display the message temporarily. The board will revert to its previous persistent message after the duration expires.
+      description: >
+        After any intro, display the score board temporarily. The board will
+        revert to its previous persistent message after the duration expires.
       selector:
         number:
           min: 10
           max: 43200
           unit_of_measurement: seconds
+    intro_duration:
+      name: Intro duration
+      description: >
+        Seconds to show the game's pixel-art intro (sword, bolt, etc.) before
+        the high-score board. Default is 8.
+      selector:
+        number:
+          min: 3
+          max: 60
+          unit_of_measurement: seconds
+      example: 8
     bypass_quiet_hours:
       name: Bypass quiet hours
       description: Ignore quiet hours setting and send the message to the Vestaboard.

@@ -1,5 +1,11 @@
 # Version history
 
+## 0.7.0
+
+- Each Stern game template uses a distinct score layout (stack, banner, title-left, labeled rows, score-focus, player-focus, split panels, frame bars) while keeping game → player → score order.
+- Game sends play a short pixel-art intro first (sword, bat, claws, shark fin, pistol, footprint, lightning bolt, X), then the high-score board (`intro_duration`, default 8s).
+- Panel **Send** uses `send_template` when a saved game is selected so intros play automatically.
+
 ## 0.6.4
 
 - Clarify that template sensor props stay dynamic at send time; panel Save/Send no longer persist preview snapshots into `vbml.props`, and panel Send always passes live prop bindings.

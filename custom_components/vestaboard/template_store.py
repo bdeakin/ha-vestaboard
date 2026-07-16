@@ -11,20 +11,40 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.storage import Store
 
 from .const import DOMAIN
+from .game_art import (
+    COLOR_BLUE,
+    COLOR_GREEN,
+    COLOR_ORANGE,
+    COLOR_RED,
+    COLOR_VIOLET,
+    COLOR_WHITE,
+    COLOR_YELLOW,
+    LAYOUT_BANNER,
+    LAYOUT_BUILDERS,
+    LAYOUT_FRAME,
+    LAYOUT_LABELED,
+    LAYOUT_PLAYER_FOCUS,
+    LAYOUT_SCORE_FOCUS,
+    LAYOUT_SPLIT,
+    LAYOUT_STACK,
+    LAYOUT_TITLE_LEFT,
+    _intro_vbml,
+    icon_bat,
+    icon_bolt,
+    icon_claws,
+    icon_footprint,
+    icon_pistol,
+    icon_shark_fin,
+    icon_sword,
+    icon_x,
+)
 
 STORAGE_VERSION = 1
 STORAGE_KEY = f"{DOMAIN}_templates"
 DATA_STORE = "template_store"
 
-# Vestaboard color codes: 63 red, 64 orange, 65 yellow, 66 green, 67 blue, 68 violet, 69 white, 70 black
-COLOR_RED = 63
-COLOR_ORANGE = 64
-COLOR_YELLOW = 65
-COLOR_GREEN = 66
-COLOR_BLUE = 67
-COLOR_VIOLET = 68
-COLOR_WHITE = 69
-COLOR_BLACK = 70
+# Bump when seeded game layouts/intros change so stores refresh.
+LAYOUT_VERSION = 2
 
 
 def _score_comma_template(entity_id: str) -> str:
@@ -109,13 +129,16 @@ def _game_template(
     player_entity: str,
     score_entity: str,
     accent: int,
+    layout: str,
+    intro_icon: list[list[int]],
 ) -> dict[str, Any]:
-    """Build a corner-dot single-game template."""
-    accent_token = "{" + str(accent) + "}"
-    black_token = "{" + str(COLOR_BLACK) + "}"
+    """Build a game template with a unique layout and pixel-art intro."""
+    builder = LAYOUT_BUILDERS[layout]
     return {
         "id": template_id,
         "name": name,
+        "layout": layout,
+        "layout_version": LAYOUT_VERSION,
         "props": [
             {
                 "name": "player",
@@ -127,90 +150,10 @@ def _game_template(
                 "template": _score_comma_template(score_entity),
             },
         ],
+        "intro": _intro_vbml(intro_icon),
         "vbml": {
             "props": {},
-            "components": [
-                {
-                    "style": {
-                        "justify": "left",
-                        "align": "top",
-                        "height": 1,
-                        "width": 1,
-                        "absolutePosition": {"x": 0, "y": 0},
-                    },
-                    "template": black_token,
-                },
-                {
-                    "style": {
-                        "justify": "left",
-                        "align": "top",
-                        "height": 1,
-                        "width": 1,
-                        "absolutePosition": {"x": 21, "y": 0},
-                    },
-                    "template": accent_token,
-                },
-                {
-                    "style": {
-                        "justify": "center",
-                        "align": "top",
-                        "height": 2,
-                        "width": 22,
-                        "absolutePosition": {"x": 0, "y": 1},
-                    },
-                    "template": title,
-                },
-                {
-                    "style": {
-                        "justify": "center",
-                        "align": "top",
-                        "height": 1,
-                        "width": 22,
-                        "absolutePosition": {"x": 0, "y": 3},
-                    },
-                    "template": "{{player}}",
-                },
-                {
-                    "style": {
-                        "justify": "center",
-                        "align": "top",
-                        "height": 1,
-                        "width": 22,
-                        "absolutePosition": {"x": 0, "y": 4},
-                    },
-                    "template": "TOP SCORE",
-                },
-                {
-                    "style": {
-                        "justify": "center",
-                        "align": "top",
-                        "height": 1,
-                        "width": 20,
-                        "absolutePosition": {"x": 1, "y": 5},
-                    },
-                    "template": "{{score}}",
-                },
-                {
-                    "style": {
-                        "justify": "left",
-                        "align": "top",
-                        "height": 1,
-                        "width": 1,
-                        "absolutePosition": {"x": 0, "y": 5},
-                    },
-                    "template": accent_token,
-                },
-                {
-                    "style": {
-                        "justify": "left",
-                        "align": "top",
-                        "height": 1,
-                        "width": 1,
-                        "absolutePosition": {"x": 21, "y": 5},
-                    },
-                    "template": black_token,
-                },
-            ],
+            "components": builder(title, accent),
         },
         "updated_at": "1970-01-01T00:00:00+00:00",
     }
@@ -225,6 +168,8 @@ DEFAULT_TEMPLATES: list[dict[str, Any]] = [
         player_entity="sensor.2026_leaderboard_dungeons_dragons_top_player",
         score_entity="sensor.2026_leaderboard_dungeons_dragons_top_score",
         accent=COLOR_YELLOW,
+        layout=LAYOUT_STACK,
+        intro_icon=icon_sword(),
     ),
     _game_template(
         template_id="elvira-house-of-horrors",
@@ -233,6 +178,8 @@ DEFAULT_TEMPLATES: list[dict[str, Any]] = [
         player_entity="sensor.2026_leaderboard_elvira_s_house_of_horrors_top_player",
         score_entity="sensor.2026_leaderboard_elvira_s_house_of_horrors_top_score",
         accent=COLOR_RED,
+        layout=LAYOUT_BANNER,
+        intro_icon=icon_bat(),
     ),
     _game_template(
         template_id="godzilla",
@@ -241,6 +188,8 @@ DEFAULT_TEMPLATES: list[dict[str, Any]] = [
         player_entity="sensor.2026_leaderboard_godzilla_top_player",
         score_entity="sensor.2026_leaderboard_godzilla_top_score",
         accent=COLOR_GREEN,
+        layout=LAYOUT_TITLE_LEFT,
+        intro_icon=icon_claws(),
     ),
     _game_template(
         template_id="jaws",
@@ -249,6 +198,8 @@ DEFAULT_TEMPLATES: list[dict[str, Any]] = [
         player_entity="sensor.2026_leaderboard_jaws_top_player",
         score_entity="sensor.2026_leaderboard_jaws_top_score",
         accent=COLOR_BLUE,
+        layout=LAYOUT_LABELED,
+        intro_icon=icon_shark_fin(),
     ),
     _game_template(
         template_id="john-wick",
@@ -257,6 +208,8 @@ DEFAULT_TEMPLATES: list[dict[str, Any]] = [
         player_entity="sensor.2026_leaderboard_john_wick_top_player",
         score_entity="sensor.2026_leaderboard_john_wick_top_score",
         accent=COLOR_WHITE,
+        layout=LAYOUT_SCORE_FOCUS,
+        intro_icon=icon_pistol(),
     ),
     _game_template(
         template_id="jurassic-park",
@@ -265,6 +218,8 @@ DEFAULT_TEMPLATES: list[dict[str, Any]] = [
         player_entity="sensor.2026_leaderboard_jurassic_park_top_player",
         score_entity="sensor.2026_leaderboard_jurassic_park_top_score",
         accent=COLOR_ORANGE,
+        layout=LAYOUT_PLAYER_FOCUS,
+        intro_icon=icon_footprint(),
     ),
     _game_template(
         template_id="pokemon",
@@ -273,6 +228,8 @@ DEFAULT_TEMPLATES: list[dict[str, Any]] = [
         player_entity="sensor.2026_leaderboard_pokemon_top_player",
         score_entity="sensor.2026_leaderboard_pokemon_top_score",
         accent=COLOR_YELLOW,
+        layout=LAYOUT_SPLIT,
+        intro_icon=icon_bolt(),
     ),
     _game_template(
         template_id="uncanny-x-men",
@@ -281,6 +238,8 @@ DEFAULT_TEMPLATES: list[dict[str, Any]] = [
         player_entity="sensor.2026_leaderboard_the_uncanny_x_men_top_player",
         score_entity="sensor.2026_leaderboard_the_uncanny_x_men_top_score",
         accent=COLOR_VIOLET,
+        layout=LAYOUT_FRAME,
+        intro_icon=icon_x(),
     ),
 ]
 
@@ -461,6 +420,8 @@ async def async_load_templates(hass: HomeAssistant) -> list[dict[str, Any]]:
         if seed_copy["id"] in seeded_game_ids and (
             _uses_k_score_format(existing.get("props"))
             or _uses_combined_top_score_line(existing.get("vbml"))
+            or not existing.get("intro")
+            or int(existing.get("layout_version") or 0) < LAYOUT_VERSION
         ):
             refresh_layout = True
         if refresh_layout:
@@ -468,6 +429,9 @@ async def async_load_templates(hass: HomeAssistant) -> list[dict[str, Any]]:
                 **existing,
                 "props": seed_copy["props"],
                 "vbml": seed_copy["vbml"],
+                "intro": seed_copy.get("intro"),
+                "layout": seed_copy.get("layout"),
+                "layout_version": seed_copy.get("layout_version", LAYOUT_VERSION),
                 "updated_at": _utc_now_iso(),
             }
             changed = True

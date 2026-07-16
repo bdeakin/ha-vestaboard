@@ -635,6 +635,21 @@ class VestaboardXPanel extends HTMLElement {
       this._render();
       return;
     }
+    // Prefer send_template so game intros (sword, bolt, etc.) play automatically
+    if (this._selectedTemplateId) {
+      try {
+        await this._hass.callService("vestaboard", "send_template", {
+          device_id: this._deviceId,
+          template_id: this._selectedTemplateId,
+        });
+        this._sendStatus =
+          "Sent template (intro plays first when the game has one).";
+      } catch (err) {
+        this._sendStatus = String(err.message || err);
+      }
+      this._render();
+      return;
+    }
     await this._syncPropsIntoVbml();
     await this._validate();
     if (!this._validation.valid) {
@@ -1099,8 +1114,8 @@ class VestaboardXPanel extends HTMLElement {
         </div>
         <p class="hint" style="margin-top:10px;">
           Preferred: Automations → <code>vestaboard.send_template</code> and pick a template from the dropdown
-          (no paste). Sensor values are live at send time — the VBML editor may show a snapshot for preview,
-          but each send re-reads entities like <code>top_player</code> / <code>top_score</code>.
+          (no paste). Game boards play a short pixel-art intro (sword, bolt, shark fin, …)
+          then the high-score layout. Sensor values are live at send time.
           <strong>Location Announcement</strong> is the rainbow
           <code>NOW DISPLAYING HIGH SCORES FOR</code> board.
         </p>

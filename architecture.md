@@ -33,6 +33,8 @@ Loads a named template from `vestaboard_templates` by `template_id` (or exact na
 
 Saved templates store **prop bindings** (`entity_id` / Jinja), not score/player snapshots. Component templates keep placeholders (`{{player}}`, `{{score}}`, `{{location}}`). On every send, `async_resolve_props` reads the current Home Assistant state and overwrites `vbml.props` so leaderboard changes show up without editing templates. The VBML editor may inject a preview snapshot into `props` for display only; Save clears those before persistence.
 
+Game templates also store an `intro` VBML (6×22 `rawCharacters` pixel art). `send_template` writes the intro as a temporary message for `intro_duration` (default 8s), with the score board set as the persistent message so it appears when the intro expires. Pixel icons and varied layouts live in `game_art.py`.
+
 ## Message composition
 
 | Source | When used | Notes |

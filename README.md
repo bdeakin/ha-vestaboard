@@ -90,7 +90,7 @@ After installing and restarting, open **Vestaboard-x** in the Home Assistant sid
 
 [![Open your Home Assistant instance and show your service developer tools with a specific action selected.](https://my.home-assistant.io/badges/developer_call_service.svg)](https://my.home-assistant.io/redirect/developer_call_service/?service=vestaboard.send_template)
 
-Best path for top-score boards: save/edit the layout in the Vestaboard-x panel, then in an automation choose **Send saved template** and select the game from the **Template** dropdown. The service loads that template’s VBML and prop bindings, **re-reads the Home Assistant sensors at send time** (so new top players/scores appear automatically), and sends to the board. Values you may see inside the VBML editor `props` object are preview snapshots only.
+Best path for top-score boards: save/edit the layout in the Vestaboard-x panel, then in an automation choose **Send saved template** and select the game from the **Template** dropdown. The service loads that template’s VBML and prop bindings, **re-reads the Home Assistant sensors at send time** (so new top players/scores appear automatically), and sends to the board. Game templates first show a short thematic pixel-art intro (about 8 seconds), then the high-score layout. Values you may see inside the VBML editor `props` object are preview snapshots only.
 
 | Field                | Name                 | Required | Description |
 | -------------------- | -------------------- | -------- | ----------- |
@@ -212,7 +212,7 @@ data:
       y: 5
 ```
 
-The panel ships a rainbow **Location Announcement** (location from `sensor.2026_leaderboard_location`) plus saved templates for every Stern 2026 leaderboard game (D&D, Elvira, Godzilla, Jaws, John Wick, Jurassic Park, Pokemon, X-Men), each wired to its `top_player` / `top_score` sensors.
+The panel ships a rainbow **Location Announcement** (location from `sensor.2026_leaderboard_location`) plus saved templates for every Stern 2026 leaderboard game (D&D, Elvira, Godzilla, Jaws, John Wick, Jurassic Park, Pokemon, X-Men). Each game board uses a distinct layout and a pixel-art intro (sword, bat, claws, shark fin, pistol, footprint, lightning bolt, or X) before the live top player / score.
 
 #### Transition Strategy
 
