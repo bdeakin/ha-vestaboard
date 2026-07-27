@@ -1,5 +1,10 @@
 # Version history
 
+## 0.7.1
+
+- Rebuilt game intro art: dense multi-color pixel scenes (≥80% board coverage) with TL→BR scan reveal animation before each score board.
+- Rebuilt per-game score layouts: game name, player, and score only (no TOP SCORE labels); varied placements with game accent lines; compact K/M scores when needed.
+
 ## 0.7.0
 
 - Each Stern game template uses a distinct score layout (stack, banner, title-left, labeled rows, score-focus, player-focus, split panels, frame bars) while keeping game → player → score order.

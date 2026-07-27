@@ -10,9 +10,9 @@ Personal fork (**Vestaboard-x**) configured to display Stern Insider Connected p
 - HA Jinja belongs in prop `template` fields; component templates use VBML `{{prop}}` only.
 - Preserve simple `message` + justify/align path and raw `vbml` escape hatch.
 - Priority: `vbml` > `components`/`props` > `message`.
-- Seed templates for each Stern 2026 game with its leaderboard sensors; vary per-game layouts while keeping game → player → score; full comma-formatted scores.
+- Seed templates for each Stern 2026 game with its leaderboard sensors; unique per-game score layouts (game name, player, score only — no TOP SCORE labels); compact K/M scores when wide.
 - Seed a rainbow Location Announcement template first in Saved Templates (`NOW DISPLAYING` / `HIGH SCORES FOR` / location) matching the Vestaboard welcome-board perimeter style.
-- Each game has a pixel-art intro (sword, bolt, etc.) that plays briefly before the high-score board on `send_template`.
+- Each game has a dense multi-color pixel-art intro (≥80% board, TL→BR scan reveal) before the score board on `send_template`.
 - Support multiple saved game templates and one-click copy of automation YAML (`props` + `vbml`).
 - Prefer a dedicated `vestaboard.send_template` action with a dynamic Template dropdown sourced from the panel Store, so automations do not require pasting VBML.
 - Prop resolution: non-empty Jinja `template` wins; blank `template` must fall through to `entity_id` (player name sensors).

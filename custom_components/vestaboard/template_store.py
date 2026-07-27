@@ -19,24 +19,17 @@ from .game_art import (
     COLOR_VIOLET,
     COLOR_WHITE,
     COLOR_YELLOW,
-    LAYOUT_BANNER,
+    INTRO_BUILDERS,
     LAYOUT_BUILDERS,
-    LAYOUT_FRAME,
-    LAYOUT_LABELED,
-    LAYOUT_PLAYER_FOCUS,
-    LAYOUT_SCORE_FOCUS,
-    LAYOUT_SPLIT,
-    LAYOUT_STACK,
-    LAYOUT_TITLE_LEFT,
+    LAYOUT_DND,
+    LAYOUT_ELVIRA,
+    LAYOUT_GODZILLA,
+    LAYOUT_JAWS,
+    LAYOUT_JOHN_WICK,
+    LAYOUT_JURASSIC,
+    LAYOUT_POKEMON,
+    LAYOUT_XMEN,
     _intro_vbml,
-    icon_bat,
-    icon_bolt,
-    icon_claws,
-    icon_footprint,
-    icon_pistol,
-    icon_shark_fin,
-    icon_sword,
-    icon_x,
 )
 
 STORAGE_VERSION = 1
@@ -44,15 +37,22 @@ STORAGE_KEY = f"{DOMAIN}_templates"
 DATA_STORE = "template_store"
 
 # Bump when seeded game layouts/intros change so stores refresh.
-LAYOUT_VERSION = 2
+LAYOUT_VERSION = 3
 
 
-def _score_comma_template(entity_id: str) -> str:
-    """Format the full score with thousands separators (e.g. 1,233,532,321)."""
+def _score_compact_template(entity_id: str) -> str:
+    """Compact score: full number, or K / M when needed for width."""
     return (
-        "{{ '{:,.0f}'.format(states('"
+        "{% set s = states('"
         + entity_id
-        + "') | float(0)) }}"
+        + "') | float(0) %}"
+        "{% if s >= 1000000 %}"
+        "{{ '{:,.1f}M'.format(s / 1000000) }}"
+        "{% elif s >= 10000 %}"
+        "{{ '{:,.0f}K'.format(s / 1000) }}"
+        "{% else %}"
+        "{{ '{:,.0f}'.format(s) }}"
+        "{% endif %}"
     )
 
 
@@ -130,10 +130,10 @@ def _game_template(
     score_entity: str,
     accent: int,
     layout: str,
-    intro_icon: list[list[int]],
 ) -> dict[str, Any]:
     """Build a game template with a unique layout and pixel-art intro."""
     builder = LAYOUT_BUILDERS[layout]
+    intro_raw = INTRO_BUILDERS[layout]()
     return {
         "id": template_id,
         "name": name,
@@ -147,10 +147,10 @@ def _game_template(
             {
                 "name": "score",
                 "entity_id": score_entity,
-                "template": _score_comma_template(score_entity),
+                "template": _score_compact_template(score_entity),
             },
         ],
-        "intro": _intro_vbml(intro_icon),
+        "intro": _intro_vbml(intro_raw),
         "vbml": {
             "props": {},
             "components": builder(title, accent),
@@ -168,8 +168,7 @@ DEFAULT_TEMPLATES: list[dict[str, Any]] = [
         player_entity="sensor.2026_leaderboard_dungeons_dragons_top_player",
         score_entity="sensor.2026_leaderboard_dungeons_dragons_top_score",
         accent=COLOR_YELLOW,
-        layout=LAYOUT_STACK,
-        intro_icon=icon_sword(),
+        layout=LAYOUT_DND,
     ),
     _game_template(
         template_id="elvira-house-of-horrors",
@@ -178,8 +177,7 @@ DEFAULT_TEMPLATES: list[dict[str, Any]] = [
         player_entity="sensor.2026_leaderboard_elvira_s_house_of_horrors_top_player",
         score_entity="sensor.2026_leaderboard_elvira_s_house_of_horrors_top_score",
         accent=COLOR_RED,
-        layout=LAYOUT_BANNER,
-        intro_icon=icon_bat(),
+        layout=LAYOUT_ELVIRA,
     ),
     _game_template(
         template_id="godzilla",
@@ -188,8 +186,7 @@ DEFAULT_TEMPLATES: list[dict[str, Any]] = [
         player_entity="sensor.2026_leaderboard_godzilla_top_player",
         score_entity="sensor.2026_leaderboard_godzilla_top_score",
         accent=COLOR_GREEN,
-        layout=LAYOUT_TITLE_LEFT,
-        intro_icon=icon_claws(),
+        layout=LAYOUT_GODZILLA,
     ),
     _game_template(
         template_id="jaws",
@@ -198,8 +195,7 @@ DEFAULT_TEMPLATES: list[dict[str, Any]] = [
         player_entity="sensor.2026_leaderboard_jaws_top_player",
         score_entity="sensor.2026_leaderboard_jaws_top_score",
         accent=COLOR_BLUE,
-        layout=LAYOUT_LABELED,
-        intro_icon=icon_shark_fin(),
+        layout=LAYOUT_JAWS,
     ),
     _game_template(
         template_id="john-wick",
@@ -208,8 +204,7 @@ DEFAULT_TEMPLATES: list[dict[str, Any]] = [
         player_entity="sensor.2026_leaderboard_john_wick_top_player",
         score_entity="sensor.2026_leaderboard_john_wick_top_score",
         accent=COLOR_WHITE,
-        layout=LAYOUT_SCORE_FOCUS,
-        intro_icon=icon_pistol(),
+        layout=LAYOUT_JOHN_WICK,
     ),
     _game_template(
         template_id="jurassic-park",
@@ -218,8 +213,7 @@ DEFAULT_TEMPLATES: list[dict[str, Any]] = [
         player_entity="sensor.2026_leaderboard_jurassic_park_top_player",
         score_entity="sensor.2026_leaderboard_jurassic_park_top_score",
         accent=COLOR_ORANGE,
-        layout=LAYOUT_PLAYER_FOCUS,
-        intro_icon=icon_footprint(),
+        layout=LAYOUT_JURASSIC,
     ),
     _game_template(
         template_id="pokemon",
@@ -228,8 +222,7 @@ DEFAULT_TEMPLATES: list[dict[str, Any]] = [
         player_entity="sensor.2026_leaderboard_pokemon_top_player",
         score_entity="sensor.2026_leaderboard_pokemon_top_score",
         accent=COLOR_YELLOW,
-        layout=LAYOUT_SPLIT,
-        intro_icon=icon_bolt(),
+        layout=LAYOUT_POKEMON,
     ),
     _game_template(
         template_id="uncanny-x-men",
@@ -238,8 +231,7 @@ DEFAULT_TEMPLATES: list[dict[str, Any]] = [
         player_entity="sensor.2026_leaderboard_the_uncanny_x_men_top_player",
         score_entity="sensor.2026_leaderboard_the_uncanny_x_men_top_score",
         accent=COLOR_VIOLET,
-        layout=LAYOUT_FRAME,
-        intro_icon=icon_x(),
+        layout=LAYOUT_XMEN,
     ),
 ]
 

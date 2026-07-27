@@ -1,10 +1,10 @@
-"""Pixel-art intro boards and layout builders for Stern game templates."""
+"""Pixel-art intro boards and per-game score layouts for Stern templates."""
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Callable
 
-# Vestaboard color codes
+# Vestaboard color codes (63–70)
 COLOR_RED = 63
 COLOR_ORANGE = 64
 COLOR_YELLOW = 65
@@ -14,17 +14,30 @@ COLOR_VIOLET = 68
 COLOR_WHITE = 69
 COLOR_BLACK = 70
 
+BOARD_ROWS = 6
+BOARD_COLS = 22
+BOARD_CELLS = BOARD_ROWS * BOARD_COLS
+MIN_COLORED_CELLS = int(BOARD_CELLS * 0.8)  # 105 of 132
+
 
 def _blank() -> list[list[int]]:
-    return [[0] * 22 for _ in range(6)]
+    return [[0] * BOARD_COLS for _ in range(BOARD_ROWS)]
 
 
 def _set(board: list[list[int]], x: int, y: int, color: int) -> None:
-    if 0 <= y < 6 and 0 <= x < 22:
+    if 0 <= y < BOARD_ROWS and 0 <= x < BOARD_COLS:
         board[y][x] = color
 
 
-def _fill_row(board: list[list[int]], y: int, color: int, x0: int = 0, x1: int = 22) -> None:
+def _fill_rect(
+    board: list[list[int]], x0: int, y0: int, w: int, h: int, color: int
+) -> None:
+    for y in range(y0, y0 + h):
+        for x in range(x0, x0 + w):
+            _set(board, x, y, color)
+
+
+def _fill_row(board: list[list[int]], y: int, color: int, x0: int = 0, x1: int = BOARD_COLS) -> None:
     for x in range(x0, x1):
         _set(board, x, y, color)
 
@@ -33,62 +46,25 @@ def _token(color: int) -> str:
     return "{" + str(color) + "}"
 
 
-def _corner_accents(accent: int) -> list[dict[str, Any]]:
-    """Black UL / accent UR / accent BL / black BR corner dots."""
-    black = _token(COLOR_BLACK)
-    acc = _token(accent)
-    return [
-        {
-            "style": {
-                "justify": "left",
-                "align": "top",
-                "height": 1,
-                "width": 1,
-                "absolutePosition": {"x": 0, "y": 0},
-            },
-            "template": black,
-        },
-        {
-            "style": {
-                "justify": "left",
-                "align": "top",
-                "height": 1,
-                "width": 1,
-                "absolutePosition": {"x": 21, "y": 0},
-            },
-            "template": acc,
-        },
-        {
-            "style": {
-                "justify": "left",
-                "align": "top",
-                "height": 1,
-                "width": 1,
-                "absolutePosition": {"x": 0, "y": 5},
-            },
-            "template": acc,
-        },
-        {
-            "style": {
-                "justify": "left",
-                "align": "top",
-                "height": 1,
-                "width": 1,
-                "absolutePosition": {"x": 21, "y": 5},
-            },
-            "template": black,
-        },
-    ]
+def _bar(accent: int, width: int = BOARD_COLS) -> str:
+    return _token(accent) * width
+
+
+def _count_colored(board: list[list[int]]) -> int:
+    return sum(1 for row in board for cell in row if cell != 0)
 
 
 def _intro_vbml(raw: list[list[int]]) -> dict[str, Any]:
+    """Wrap a finished board; reveal frames are built at send time."""
     return {
         "props": {},
+        "raw": raw,
+        "strategy": "column",
         "components": [
             {
                 "style": {
-                    "height": 6,
-                    "width": 22,
+                    "height": BOARD_ROWS,
+                    "width": BOARD_COLS,
                     "absolutePosition": {"x": 0, "y": 0},
                 },
                 "rawCharacters": raw,
@@ -97,691 +73,341 @@ def _intro_vbml(raw: list[list[int]]) -> dict[str, Any]:
     }
 
 
+def build_reveal_frames(
+    final: list[list[int]], frame_count: int = 18
+) -> list[list[list[int]]]:
+    """Build TL→BR scan-order reveal frames (top-left flips first)."""
+    cells = [(y, x, final[y][x]) for y in range(BOARD_ROWS) for x in range(BOARD_COLS)]
+    frames: list[list[list[int]]] = []
+    board = _blank()
+    chunk = max(1, len(cells) // frame_count)
+    for index, (y, x, color) in enumerate(cells):
+        board[y][x] = color
+        if (index + 1) % chunk == 0 or index == len(cells) - 1:
+            frames.append([row[:] for row in board])
+    return frames
+
+
 # ---------------------------------------------------------------------------
-# Intro icons (6x22 pixel art)
+# Intro art — dense, 2+ colors, recognizable (≥80% filled)
 # ---------------------------------------------------------------------------
 
 
 def icon_sword() -> list[list[int]]:
-    """Dungeons & Dragons — vertical sword."""
+    """D&D — glowing sword on gold cave wall."""
     b = _blank()
-    cx = 10
-    # blade tip + shaft
-    _set(b, cx, 0, COLOR_WHITE)
-    for y in (1, 2, 3):
-        _set(b, cx, y, COLOR_WHITE)
-        _set(b, cx + 1, y, COLOR_WHITE)
+    _fill_rect(b, 0, 0, BOARD_COLS, BOARD_ROWS, COLOR_ORANGE)
+    # stone texture stripes
+    for y in range(BOARD_ROWS):
+        for x in range(0, BOARD_COLS, 3):
+            if (x + y) % 2 == 0:
+                _set(b, x, y, COLOR_YELLOW)
+    # large vertical blade (white + yellow edge)
+    for y in range(BOARD_ROWS):
+        _set(b, 10, y, COLOR_WHITE)
+        _set(b, 11, y, COLOR_WHITE)
+        _set(b, 9, y, COLOR_YELLOW)
+        _set(b, 12, y, COLOR_YELLOW)
     # crossguard
-    for x in range(cx - 3, cx + 5):
-        _set(b, x, 4, COLOR_YELLOW)
-    # pommel
-    _set(b, cx, 5, COLOR_YELLOW)
-    _set(b, cx + 1, 5, COLOR_YELLOW)
+    _fill_row(b, 4, COLOR_YELLOW, 6, 16)
+    _fill_row(b, 5, COLOR_YELLOW, 8, 14)
     return b
 
 
 def icon_bat() -> list[list[int]]:
-    """Elvira — bat silhouette."""
+    """Elvira — bat on blood-red sky."""
     b = _blank()
-    # wings
-    for x in range(2, 9):
-        _set(b, x, 2, COLOR_RED)
-        _set(b, x, 3, COLOR_RED)
-    for x in range(13, 20):
-        _set(b, x, 2, COLOR_RED)
-        _set(b, x, 3, COLOR_RED)
-    # body / head
-    for x in range(9, 13):
-        _set(b, x, 1, COLOR_RED)
-        _set(b, x, 2, COLOR_RED)
-        _set(b, x, 3, COLOR_RED)
-    _set(b, 10, 0, COLOR_RED)
-    _set(b, 11, 0, COLOR_RED)
-    # wing tips lower
-    _set(b, 3, 4, COLOR_RED)
-    _set(b, 4, 4, COLOR_RED)
-    _set(b, 17, 4, COLOR_RED)
-    _set(b, 18, 4, COLOR_RED)
+    _fill_rect(b, 0, 0, BOARD_COLS, BOARD_ROWS, COLOR_RED)
+    # moon
+    _fill_rect(b, 16, 0, 5, 2, COLOR_WHITE)
+    # bat wings (black on red)
+    for y in range(1, 5):
+        for x in range(1, 10):
+            if abs((x - 5) + (y - 2)) < 4:
+                _set(b, x, y, COLOR_BLACK)
+        for x in range(12, 21):
+            if abs((x - 16) + (y - 2)) < 4:
+                _set(b, x, y, COLOR_BLACK)
+    # body
+    _fill_rect(b, 9, 1, 4, 3, COLOR_BLACK)
+    _fill_rect(b, 10, 0, 2, 1, COLOR_BLACK)
+    # eyes
+    _set(b, 10, 2, COLOR_WHITE)
+    _set(b, 11, 2, COLOR_WHITE)
     return b
 
 
 def icon_claws() -> list[list[int]]:
-    """Godzilla — three claw slash marks."""
+    """Godzilla — city skyline + claw slashes."""
     b = _blank()
-    for i, x0 in enumerate((4, 9, 14)):
-        for y in range(6):
-            _set(b, x0 + y // 2, y, COLOR_GREEN)
-            _set(b, x0 + y // 2 + 1, y, COLOR_GREEN)
+    _fill_rect(b, 0, 0, BOARD_COLS, 3, COLOR_BLUE)
+    _fill_rect(b, 0, 3, BOARD_COLS, 3, COLOR_GREEN)
+    # buildings
+    for x in range(0, BOARD_COLS, 4):
+        h = 2 + (x % 3)
+        _fill_rect(b, x, 3 - h, 3, h, COLOR_BLACK)
+    # three claw marks (orange on green)
+    for offset in (3, 10, 17):
+        for y in range(BOARD_ROWS):
+            _set(b, offset + y // 2, y, COLOR_ORANGE)
+            _set(b, offset + y // 2 + 1, y, COLOR_ORANGE)
+            _set(b, offset + y // 2 + 2, y, COLOR_YELLOW)
     return b
 
 
 def icon_shark_fin() -> list[list[int]]:
-    """Jaws — shark fin above water."""
+    """Jaws — ocean with large fin and teeth row."""
     b = _blank()
-    # water line
-    _fill_row(b, 4, COLOR_BLUE)
-    _fill_row(b, 5, COLOR_BLUE)
+    _fill_rect(b, 0, 0, BOARD_COLS, BOARD_ROWS, COLOR_BLUE)
+    # lighter wave bands
+    for y in (1, 3, 5):
+        _fill_row(b, y, COLOR_WHITE, 0, BOARD_COLS)
+        for x in range(0, BOARD_COLS, 2):
+            _set(b, x, y, COLOR_BLUE)
     # fin
-    _set(b, 11, 0, COLOR_WHITE)
-    for x in range(10, 13):
-        _set(b, x, 1, COLOR_WHITE)
-    for x in range(9, 14):
-        _set(b, x, 2, COLOR_WHITE)
     for x in range(8, 15):
-        _set(b, x, 3, COLOR_WHITE)
+        _set(b, x, 0, COLOR_WHITE)
+    for x in range(7, 16):
+        _set(b, x, 1, COLOR_WHITE)
+    for x in range(6, 17):
+        _set(b, x, 2, COLOR_WHITE)
+    # teeth at waterline
+    for x in range(2, BOARD_COLS - 2, 2):
+        _set(b, x, 4, COLOR_WHITE)
     return b
 
 
 def icon_pistol() -> list[list[int]]:
-    """John Wick — side-view pistol."""
+    """John Wick — bold pistol silhouette on white target rings."""
     b = _blank()
-    # barrel + slide
-    for x in range(5, 16):
-        _set(b, x, 1, COLOR_WHITE)
-        _set(b, x, 2, COLOR_WHITE)
-    # muzzle
-    _set(b, 16, 1, COLOR_WHITE)
-    _set(b, 16, 2, COLOR_WHITE)
-    # grip
-    for y in range(2, 6):
-        _set(b, 6, y, COLOR_WHITE)
-        _set(b, 7, y, COLOR_WHITE)
-        _set(b, 8, y, COLOR_WHITE)
-    # trigger guard hint
-    _set(b, 9, 3, COLOR_WHITE)
+    # concentric target (red/white)
+    for y in range(BOARD_ROWS):
+        for x in range(BOARD_COLS):
+            dist = abs(x - 11) + abs(y - 3)
+            b[y][x] = COLOR_RED if dist % 3 == 0 else COLOR_WHITE
+    # pistol black
+    _fill_rect(b, 4, 2, 12, 2, COLOR_BLACK)
+    _fill_rect(b, 6, 4, 4, 2, COLOR_BLACK)
+    _fill_rect(b, 5, 3, 2, 1, COLOR_BLACK)
+    _set(b, 16, 2, COLOR_BLACK)
+    _set(b, 16, 3, COLOR_BLACK)
     return b
 
 
 def icon_footprint() -> list[list[int]]:
-    """Jurassic Park — dinosaur footprint."""
+    """Jurassic Park — amber field + large raptor footprint."""
     b = _blank()
-    # heel pad
-    for y in range(3, 6):
-        for x in range(8, 14):
-            _set(b, x, y, COLOR_ORANGE)
-    # three toes
-    for x in (6, 7, 8):
-        _set(b, x, 1, COLOR_ORANGE)
-        _set(b, x, 2, COLOR_ORANGE)
+    _fill_rect(b, 0, 0, BOARD_COLS, BOARD_ROWS, COLOR_ORANGE)
+    for y in range(BOARD_ROWS):
+        for x in range(BOARD_COLS):
+            if (x + y) % 4 == 0:
+                _set(b, x, y, COLOR_YELLOW)
+    # footprint (black)
+    _fill_rect(b, 8, 3, 6, 3, COLOR_BLACK)
+    for x in (5, 6, 7):
+        _set(b, x, 1, COLOR_BLACK)
+        _set(b, x, 2, COLOR_BLACK)
     for x in (10, 11, 12):
-        _set(b, x, 0, COLOR_ORANGE)
-        _set(b, x, 1, COLOR_ORANGE)
+        _set(b, x, 0, COLOR_BLACK)
+        _set(b, x, 1, COLOR_BLACK)
     for x in (14, 15, 16):
-        _set(b, x, 1, COLOR_ORANGE)
-        _set(b, x, 2, COLOR_ORANGE)
+        _set(b, x, 1, COLOR_BLACK)
+        _set(b, x, 2, COLOR_BLACK)
     return b
 
 
 def icon_bolt() -> list[list[int]]:
-    """Pokemon — lightning bolt."""
+    """Pokemon — electric bolt on dark sky."""
     b = _blank()
-    # zigzag bolt centered
-    coords = [
-        (12, 0),
-        (13, 0),
-        (11, 1),
-        (12, 1),
-        (10, 2),
-        (11, 2),
-        (9, 3),
-        (10, 3),
-        (11, 3),
-        (12, 3),
-        (13, 3),
-        (11, 4),
-        (12, 4),
-        (10, 5),
-        (11, 5),
+    _fill_rect(b, 0, 0, BOARD_COLS, BOARD_ROWS, COLOR_VIOLET)
+    for y in range(BOARD_ROWS):
+        for x in range(0, BOARD_COLS, 5):
+            _set(b, x, y, COLOR_BLUE)
+    # large lightning bolt (yellow + white core)
+    bolt = [
+        (13, 0), (14, 0), (12, 1), (13, 1), (11, 2), (12, 2),
+        (10, 3), (11, 3), (12, 3), (13, 3), (9, 4), (10, 4),
+        (11, 4), (12, 4), (8, 5), (9, 5), (10, 5), (11, 5),
+        (7, 0), (8, 1), (9, 2), (8, 3), (7, 4),
     ]
-    for x, y in coords:
+    for x, y in bolt:
         _set(b, x, y, COLOR_YELLOW)
+        _set(b, x + 1, y, COLOR_WHITE)
     return b
 
 
 def icon_x() -> list[list[int]]:
-    """X-Men — large X."""
+    """X-Men — bold X on yellow danger stripes."""
     b = _blank()
-    for i in range(6):
-        _set(b, 7 + i, i, COLOR_VIOLET)
-        _set(b, 8 + i, i, COLOR_VIOLET)
-        _set(b, 14 - i, i, COLOR_VIOLET)
-        _set(b, 15 - i, i, COLOR_VIOLET)
+    for y in range(BOARD_ROWS):
+        for x in range(BOARD_COLS):
+            b[y][x] = COLOR_YELLOW if (x // 3) % 2 == 0 else COLOR_BLACK
+    # large X (violet + white)
+    for i in range(BOARD_ROWS):
+        _set(b, 3 + i, i, COLOR_VIOLET)
+        _set(b, 4 + i, i, COLOR_WHITE)
+        _set(b, 17 - i, i, COLOR_VIOLET)
+        _set(b, 18 - i, i, COLOR_WHITE)
     return b
 
 
 # ---------------------------------------------------------------------------
-# Varied score layouts (always: game → player → score, TTB or LTR)
+# Score layouts — game name, player, score only (no TOP SCORE labels)
 # ---------------------------------------------------------------------------
 
 
-def layout_stack_classic(title: str, accent: int) -> list[dict[str, Any]]:
-    """Top-to-bottom: title, player, TOP SCORE, score + corner dots."""
+def _comp(
+    template: str,
+    *,
+    x: int,
+    y: int,
+    width: int,
+    height: int = 1,
+    justify: str = "center",
+    align: str = "top",
+) -> dict[str, Any]:
+    return {
+        "style": {
+            "justify": justify,
+            "align": align,
+            "height": height,
+            "width": width,
+            "absolutePosition": {"x": x, "y": y},
+        },
+        "template": template,
+    }
+
+
+def _accent_line(accent: int, y: int, x: int = 0, width: int = BOARD_COLS) -> dict[str, Any]:
+    return _comp(_bar(accent, width), x=x, y=y, width=width, justify="left")
+
+
+def layout_dnd(title: str, accent: int) -> list[dict[str, Any]]:
+    """Centered title stack, gold corner dots, player then score."""
     return [
-        *_corner_accents(accent),
-        {
-            "style": {
-                "justify": "center",
-                "align": "top",
-                "height": 2,
-                "width": 22,
-                "absolutePosition": {"x": 0, "y": 1},
-            },
-            "template": title,
-        },
-        {
-            "style": {
-                "justify": "center",
-                "align": "top",
-                "height": 1,
-                "width": 22,
-                "absolutePosition": {"x": 0, "y": 3},
-            },
-            "template": "{{player}}",
-        },
-        {
-            "style": {
-                "justify": "center",
-                "align": "top",
-                "height": 1,
-                "width": 22,
-                "absolutePosition": {"x": 0, "y": 4},
-            },
-            "template": "TOP SCORE",
-        },
-        {
-            "style": {
-                "justify": "center",
-                "align": "top",
-                "height": 1,
-                "width": 20,
-                "absolutePosition": {"x": 1, "y": 5},
-            },
-            "template": "{{score}}",
-        },
+        _comp(_token(COLOR_BLACK), x=0, y=0, width=1, height=1, justify="left"),
+        _comp(_token(accent), x=21, y=0, width=1, height=1, justify="left"),
+        _comp(title, x=0, y=1, width=BOARD_COLS, height=2),
+        _accent_line(accent, 3),
+        _comp("{{player}}", x=0, y=3, width=BOARD_COLS),
+        _comp("{{score}}", x=1, y=4, width=20),
+        _comp(_token(accent), x=0, y=5, width=1, height=1, justify="left"),
+        _comp(_token(COLOR_BLACK), x=21, y=5, width=1, height=1, justify="left"),
     ]
 
 
-def layout_accent_banner(title: str, accent: int) -> list[dict[str, Any]]:
-    """Accent bar under title, then player, then score."""
-    bar = _token(accent) * 22
+def layout_elvira(title: str, accent: int) -> list[dict[str, Any]]:
+    """Title left column; player and score on the right."""
     return [
-        {
-            "style": {
-                "justify": "center",
-                "align": "top",
-                "height": 2,
-                "width": 22,
-                "absolutePosition": {"x": 0, "y": 0},
-            },
-            "template": title,
-        },
-        {
-            "style": {
-                "justify": "left",
-                "align": "top",
-                "height": 1,
-                "width": 22,
-                "absolutePosition": {"x": 0, "y": 2},
-            },
-            "template": bar,
-        },
-        {
-            "style": {
-                "justify": "center",
-                "align": "top",
-                "height": 1,
-                "width": 22,
-                "absolutePosition": {"x": 0, "y": 3},
-            },
-            "template": "{{player}}",
-        },
-        {
-            "style": {
-                "justify": "center",
-                "align": "top",
-                "height": 1,
-                "width": 22,
-                "absolutePosition": {"x": 0, "y": 4},
-            },
-            "template": "TOP SCORE",
-        },
-        {
-            "style": {
-                "justify": "center",
-                "align": "top",
-                "height": 1,
-                "width": 22,
-                "absolutePosition": {"x": 0, "y": 5},
-            },
-            "template": "{{score}}",
-        },
+        _accent_line(accent, 0),
+        _comp(title, x=0, y=1, width=11, height=4, justify="left", align="center"),
+        _comp(_token(accent), x=11, y=1, width=1, height=4, justify="left"),
+        _comp("{{player}}", x=12, y=1, width=10, justify="right"),
+        _accent_line(COLOR_BLACK, 3, x=12, width=10),
+        _comp("{{score}}", x=12, y=4, width=10, justify="right"),
+        _accent_line(accent, 5),
     ]
 
 
-def layout_title_left(title: str, accent: int) -> list[dict[str, Any]]:
-    """Left-to-right: title column, then player / score column."""
+def layout_godzilla(title: str, accent: int) -> list[dict[str, Any]]:
+    """GODZILLA / player / score — three centered rows."""
     return [
-        {
-            "style": {
-                "justify": "left",
-                "align": "top",
-                "height": 1,
-                "width": 1,
-                "absolutePosition": {"x": 0, "y": 0},
-            },
-            "template": _token(accent),
-        },
-        {
-            "style": {
-                "justify": "center",
-                "align": "center",
-                "height": 6,
-                "width": 10,
-                "absolutePosition": {"x": 1, "y": 0},
-            },
-            "template": title,
-        },
-        {
-            "style": {
-                "justify": "left",
-                "align": "top",
-                "height": 1,
-                "width": 1,
-                "absolutePosition": {"x": 11, "y": 0},
-            },
-            "template": _token(accent),
-        },
-        {
-            "style": {
-                "justify": "center",
-                "align": "top",
-                "height": 1,
-                "width": 10,
-                "absolutePosition": {"x": 12, "y": 1},
-            },
-            "template": "PLAYER",
-        },
-        {
-            "style": {
-                "justify": "center",
-                "align": "top",
-                "height": 1,
-                "width": 10,
-                "absolutePosition": {"x": 12, "y": 2},
-            },
-            "template": "{{player}}",
-        },
-        {
-            "style": {
-                "justify": "center",
-                "align": "top",
-                "height": 1,
-                "width": 10,
-                "absolutePosition": {"x": 12, "y": 4},
-            },
-            "template": "SCORE",
-        },
-        {
-            "style": {
-                "justify": "center",
-                "align": "top",
-                "height": 1,
-                "width": 10,
-                "absolutePosition": {"x": 12, "y": 5},
-            },
-            "template": "{{score}}",
-        },
+        _accent_line(accent, 0),
+        _comp(title.replace("\n", " "), x=0, y=1, width=BOARD_COLS),
+        _comp("{{player}}", x=0, y=3, width=BOARD_COLS),
+        _accent_line(COLOR_GREEN, 4),
+        _comp("{{score}}", x=0, y=5, width=BOARD_COLS),
     ]
 
 
-def layout_labeled_rows(title: str, accent: int) -> list[dict[str, Any]]:
-    """Top-to-bottom labeled rows: GAME / PLAYER / SCORE."""
+def layout_jaws(title: str, accent: int) -> list[dict[str, Any]]:
+    """Title top; player center; score lower-right."""
     return [
-        *_corner_accents(accent),
-        {
-            "style": {
-                "justify": "left",
-                "align": "top",
-                "height": 1,
-                "width": 6,
-                "absolutePosition": {"x": 1, "y": 1},
-            },
-            "template": "GAME",
-        },
-        {
-            "style": {
-                "justify": "left",
-                "align": "top",
-                "height": 1,
-                "width": 14,
-                "absolutePosition": {"x": 7, "y": 1},
-            },
-            "template": title.replace("\n", " "),
-        },
-        {
-            "style": {
-                "justify": "left",
-                "align": "top",
-                "height": 1,
-                "width": 6,
-                "absolutePosition": {"x": 1, "y": 3},
-            },
-            "template": "PLAYER",
-        },
-        {
-            "style": {
-                "justify": "left",
-                "align": "top",
-                "height": 1,
-                "width": 14,
-                "absolutePosition": {"x": 7, "y": 3},
-            },
-            "template": "{{player}}",
-        },
-        {
-            "style": {
-                "justify": "left",
-                "align": "top",
-                "height": 1,
-                "width": 6,
-                "absolutePosition": {"x": 1, "y": 5},
-            },
-            "template": "SCORE",
-        },
-        {
-            "style": {
-                "justify": "left",
-                "align": "top",
-                "height": 1,
-                "width": 14,
-                "absolutePosition": {"x": 7, "y": 5},
-            },
-            "template": "{{score}}",
-        },
+        _comp(title.replace("\n", " "), x=0, y=0, width=BOARD_COLS),
+        _accent_line(accent, 1),
+        _accent_line(COLOR_WHITE, 2),
+        _comp("{{player}}", x=0, y=3, width=BOARD_COLS),
+        _comp("{{score}}", x=10, y=5, width=12, justify="right"),
     ]
 
 
-def layout_score_focus(title: str, accent: int) -> list[dict[str, Any]]:
-    """Title top, player, then score emphasized on bottom two rows."""
+def layout_john_wick(title: str, accent: int) -> list[dict[str, Any]]:
+    """Title + underline; player centered; score bottom-right."""
     return [
-        {
-            "style": {
-                "justify": "center",
-                "align": "top",
-                "height": 1,
-                "width": 22,
-                "absolutePosition": {"x": 0, "y": 0},
-            },
-            "template": title.replace("\n", " "),
-        },
-        {
-            "style": {
-                "justify": "left",
-                "align": "top",
-                "height": 1,
-                "width": 22,
-                "absolutePosition": {"x": 0, "y": 1},
-            },
-            "template": _token(accent) * 22,
-        },
-        {
-            "style": {
-                "justify": "center",
-                "align": "top",
-                "height": 1,
-                "width": 22,
-                "absolutePosition": {"x": 0, "y": 2},
-            },
-            "template": "{{player}}",
-        },
-        {
-            "style": {
-                "justify": "center",
-                "align": "top",
-                "height": 1,
-                "width": 22,
-                "absolutePosition": {"x": 0, "y": 3},
-            },
-            "template": "TOP SCORE",
-        },
-        {
-            "style": {
-                "justify": "center",
-                "align": "top",
-                "height": 2,
-                "width": 22,
-                "absolutePosition": {"x": 0, "y": 4},
-            },
-            "template": "{{score}}",
-        },
+        _comp(title.replace("\n", " "), x=0, y=0, width=BOARD_COLS),
+        _accent_line(accent, 1),
+        _comp("{{player}}", x=0, y=2, width=BOARD_COLS, height=2, align="center"),
+        _comp(_token(COLOR_BLACK), x=0, y=4, width=8, justify="left"),
+        _comp("{{score}}", x=8, y=4, width=14, justify="right"),
+        _accent_line(accent, 5),
     ]
 
 
-def layout_player_focus(title: str, accent: int) -> list[dict[str, Any]]:
-    """Title, large centered player, score on bottom with corner accents."""
+def layout_jurassic(title: str, accent: int) -> list[dict[str, Any]]:
+    """JURASSIC / PARK stacked left; player upper-right; score lower-right."""
     return [
-        *_corner_accents(accent),
-        {
-            "style": {
-                "justify": "center",
-                "align": "top",
-                "height": 1,
-                "width": 20,
-                "absolutePosition": {"x": 1, "y": 1},
-            },
-            "template": title.replace("\n", " "),
-        },
-        {
-            "style": {
-                "justify": "center",
-                "align": "center",
-                "height": 2,
-                "width": 22,
-                "absolutePosition": {"x": 0, "y": 2},
-            },
-            "template": "{{player}}",
-        },
-        {
-            "style": {
-                "justify": "center",
-                "align": "top",
-                "height": 1,
-                "width": 20,
-                "absolutePosition": {"x": 1, "y": 4},
-            },
-            "template": "TOP SCORE",
-        },
-        {
-            "style": {
-                "justify": "center",
-                "align": "top",
-                "height": 1,
-                "width": 20,
-                "absolutePosition": {"x": 1, "y": 5},
-            },
-            "template": "{{score}}",
-        },
+        _comp("JURASSIC", x=0, y=0, width=12, justify="left"),
+        _comp("PARK", x=0, y=1, width=12, justify="left"),
+        _accent_line(accent, 2, x=0, width=12),
+        _comp("{{player}}", x=12, y=0, width=10, justify="right"),
+        _comp("{{score}}", x=12, y=4, width=10, justify="right"),
+        _accent_line(accent, 5),
     ]
 
 
-def layout_split_panels(title: str, accent: int) -> list[dict[str, Any]]:
-    """Title across top; player left panel, score right panel."""
+def layout_pokemon(title: str, accent: int) -> list[dict[str, Any]]:
+    """Title with bolt stripe; player left, score right."""
     return [
-        {
-            "style": {
-                "justify": "center",
-                "align": "top",
-                "height": 2,
-                "width": 22,
-                "absolutePosition": {"x": 0, "y": 0},
-            },
-            "template": title,
-        },
-        {
-            "style": {
-                "justify": "left",
-                "align": "top",
-                "height": 1,
-                "width": 1,
-                "absolutePosition": {"x": 10, "y": 2},
-            },
-            "template": _token(accent),
-        },
-        {
-            "style": {
-                "justify": "left",
-                "align": "top",
-                "height": 1,
-                "width": 1,
-                "absolutePosition": {"x": 10, "y": 3},
-            },
-            "template": _token(accent),
-        },
-        {
-            "style": {
-                "justify": "left",
-                "align": "top",
-                "height": 1,
-                "width": 1,
-                "absolutePosition": {"x": 10, "y": 4},
-            },
-            "template": _token(accent),
-        },
-        {
-            "style": {
-                "justify": "left",
-                "align": "top",
-                "height": 1,
-                "width": 1,
-                "absolutePosition": {"x": 10, "y": 5},
-            },
-            "template": _token(accent),
-        },
-        {
-            "style": {
-                "justify": "center",
-                "align": "top",
-                "height": 1,
-                "width": 10,
-                "absolutePosition": {"x": 0, "y": 3},
-            },
-            "template": "PLAYER",
-        },
-        {
-            "style": {
-                "justify": "center",
-                "align": "top",
-                "height": 1,
-                "width": 10,
-                "absolutePosition": {"x": 0, "y": 4},
-            },
-            "template": "{{player}}",
-        },
-        {
-            "style": {
-                "justify": "center",
-                "align": "top",
-                "height": 1,
-                "width": 10,
-                "absolutePosition": {"x": 12, "y": 3},
-            },
-            "template": "SCORE",
-        },
-        {
-            "style": {
-                "justify": "center",
-                "align": "top",
-                "height": 1,
-                "width": 10,
-                "absolutePosition": {"x": 12, "y": 4},
-            },
-            "template": "{{score}}",
-        },
+        _comp(title.replace("\n", " "), x=0, y=0, width=14, justify="left"),
+        _comp(_token(accent) * 8, x=14, y=0, width=8, justify="left"),
+        _accent_line(COLOR_VIOLET, 1),
+        _comp("{{player}}", x=0, y=2, width=11, justify="left"),
+        _comp(_token(accent), x=11, y=2, width=1, height=3, justify="left"),
+        _comp("{{score}}", x=12, y=3, width=10, justify="right"),
+        _accent_line(accent, 5),
     ]
 
 
-def layout_frame_bars(title: str, accent: int) -> list[dict[str, Any]]:
-    """Accent bars framing title → player → TOP SCORE → score."""
+def layout_xmen(title: str, accent: int) -> list[dict[str, Any]]:
+    """THE / UNCANNY / X-MEN left; player top-right; score lower-right."""
     return [
-        {
-            "style": {
-                "justify": "left",
-                "align": "top",
-                "height": 1,
-                "width": 22,
-                "absolutePosition": {"x": 0, "y": 0},
-            },
-            "template": _token(accent) * 22,
-        },
-        {
-            "style": {
-                "justify": "center",
-                "align": "top",
-                "height": 1,
-                "width": 22,
-                "absolutePosition": {"x": 0, "y": 1},
-            },
-            "template": title.replace("\n", " "),
-        },
-        {
-            "style": {
-                "justify": "center",
-                "align": "top",
-                "height": 1,
-                "width": 22,
-                "absolutePosition": {"x": 0, "y": 2},
-            },
-            "template": "{{player}}",
-        },
-        {
-            "style": {
-                "justify": "center",
-                "align": "top",
-                "height": 1,
-                "width": 22,
-                "absolutePosition": {"x": 0, "y": 3},
-            },
-            "template": "TOP SCORE",
-        },
-        {
-            "style": {
-                "justify": "center",
-                "align": "top",
-                "height": 1,
-                "width": 22,
-                "absolutePosition": {"x": 0, "y": 4},
-            },
-            "template": "{{score}}",
-        },
-        {
-            "style": {
-                "justify": "left",
-                "align": "top",
-                "height": 1,
-                "width": 22,
-                "absolutePosition": {"x": 0, "y": 5},
-            },
-            "template": _token(accent) * 22,
-        },
+        _comp("THE", x=0, y=0, width=10, justify="left"),
+        _comp("UNCANNY", x=0, y=1, width=10, justify="left"),
+        _comp("X-MEN", x=0, y=2, width=10, justify="left"),
+        _accent_line(accent, 3, x=0, width=10),
+        _comp("{{player}}", x=11, y=0, width=11, justify="right"),
+        _comp("{{score}}", x=11, y=4, width=11, justify="right"),
+        _comp(_token(accent), x=10, y=0, width=1, height=6, justify="left"),
     ]
 
 
-LAYOUT_STACK = "stack_classic"
-LAYOUT_BANNER = "accent_banner"
-LAYOUT_TITLE_LEFT = "title_left"
-LAYOUT_LABELED = "labeled_rows"
-LAYOUT_SCORE_FOCUS = "score_focus"
-LAYOUT_PLAYER_FOCUS = "player_focus"
-LAYOUT_SPLIT = "split_panels"
-LAYOUT_FRAME = "frame_bars"
+LAYOUT_DND = "dnd"
+LAYOUT_ELVIRA = "elvira"
+LAYOUT_GODZILLA = "godzilla"
+LAYOUT_JAWS = "jaws"
+LAYOUT_JOHN_WICK = "john_wick"
+LAYOUT_JURASSIC = "jurassic"
+LAYOUT_POKEMON = "pokemon"
+LAYOUT_XMEN = "xmen"
 
-LAYOUT_BUILDERS = {
-    LAYOUT_STACK: layout_stack_classic,
-    LAYOUT_BANNER: layout_accent_banner,
-    LAYOUT_TITLE_LEFT: layout_title_left,
-    LAYOUT_LABELED: layout_labeled_rows,
-    LAYOUT_SCORE_FOCUS: layout_score_focus,
-    LAYOUT_PLAYER_FOCUS: layout_player_focus,
-    LAYOUT_SPLIT: layout_split_panels,
-    LAYOUT_FRAME: layout_frame_bars,
+LAYOUT_BUILDERS: dict[str, Callable[[str, int], list[dict[str, Any]]]] = {
+    LAYOUT_DND: layout_dnd,
+    LAYOUT_ELVIRA: layout_elvira,
+    LAYOUT_GODZILLA: layout_godzilla,
+    LAYOUT_JAWS: layout_jaws,
+    LAYOUT_JOHN_WICK: layout_john_wick,
+    LAYOUT_JURASSIC: layout_jurassic,
+    LAYOUT_POKEMON: layout_pokemon,
+    LAYOUT_XMEN: layout_xmen,
+}
+
+INTRO_BUILDERS: dict[str, Callable[[], list[list[int]]]] = {
+    LAYOUT_DND: icon_sword,
+    LAYOUT_ELVIRA: icon_bat,
+    LAYOUT_GODZILLA: icon_claws,
+    LAYOUT_JAWS: icon_shark_fin,
+    LAYOUT_JOHN_WICK: icon_pistol,
+    LAYOUT_JURASSIC: icon_footprint,
+    LAYOUT_POKEMON: icon_bolt,
+    LAYOUT_XMEN: icon_x,
 }

@@ -44,4 +44,4 @@ Added a rainbow **Location Announcement** template in the Vestaboard welcome-boa
 
 Leaderboard templates stay dynamic: each send re-resolves entity/Jinja props from live sensors. Editor preview values in `vbml.props` are snapshots only and are cleared on save so they are not mistaken for frozen scores. Location Announcement is migrated to always include the `location` entity prop if it was missing from an earlier save.
 
-Game boards each use a different layout (still game → player → score) and a thematic pixel-art intro (sword, bat, claws, fin, pistol, footprint, bolt, X) shown briefly before the score via `send_template`.
+Game boards each use a different layout (game name, player, score — no extra labels) and a dense thematic pixel-art intro (≥80% board, 2+ colors) revealed top-left to bottom-right before the score via `send_template`.

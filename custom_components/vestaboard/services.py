@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from datetime import timedelta
 from typing import Any
 
@@ -44,6 +45,7 @@ from .const import (
     SERVICE_MESSAGE,
     SERVICE_SEND_TEMPLATE,
 )
+from .game_art import build_reveal_frames
 from .helpers import async_get_coordinator_by_device_id
 from .template_store import async_get_template, async_load_templates
 from .vbml_schema import VBML_SCHEMA
@@ -295,17 +297,39 @@ async def async_deliver_vbml(
                 await coordinator.write_and_update_state(json)
 
 
+def _intro_raw_grid(intro_vbml: dict[str, Any]) -> list[list[int]] | None:
+    """Extract the 6×22 color grid from an intro VBML payload."""
+    if raw := intro_vbml.get("raw"):
+        return raw
+    for component in intro_vbml.get(CONF_COMPONENTS) or []:
+        if raw_chars := component.get("rawCharacters"):
+            return raw_chars
+    return None
+
+
+def _frame_vbml(grid: list[list[int]]) -> dict[str, Any]:
+    return {
+        "props": {},
+        "components": [
+            {
+                "style": {
+                    "height": 6,
+                    "width": 22,
+                    "absolutePosition": {"x": 0, "y": 0},
+                },
+                "rawCharacters": grid,
+            }
+        ],
+    }
+
+
 async def async_deliver_intro_then_vbml(
     hass: HomeAssistant,
     call: ServiceCall,
     intro_vbml: dict[str, Any],
     score_vbml: dict[str, Any],
 ) -> None:
-    """Show a pixel-art intro briefly, then the score board.
-
-    The score layout is stored as the new persistent message. The intro is
-    written as a temporary message so expiration reveals the score.
-    """
+    """Animate a pixel-art intro (TL→BR reveal), then show the score board."""
     intro_seconds = int(
         call.data.get(CONF_INTRO_DURATION, DEFAULT_INTRO_DURATION)
     )
@@ -328,62 +352,74 @@ async def async_deliver_intro_then_vbml(
             raise HomeAssistantError("Vestaboard model is not initialized")
 
         try:
-            intro_rows = coordinator.model.parse_vbml(intro_vbml)
             score_rows = coordinator.model.parse_vbml(score_vbml)
         except Exception as ex:
             raise HomeAssistantError(f"Invalid VBML payload: {ex}") from ex
 
-        transition = dict(base_json)
-        if CONF_STRATEGY not in transition:
-            transition.update(coordinator.default_transition_settings)
+        intro_strategy = intro_vbml.get("strategy", "column")
+        score_transition = dict(base_json)
+        if CONF_STRATEGY not in score_transition:
+            score_transition.update(coordinator.default_transition_settings)
+        if CONF_STRATEGY not in call.data:
+            score_transition[CONF_STRATEGY] = "column"
 
-        # Score becomes the persistent board once the intro expires
+        raw = await hass.async_add_executor_job(_intro_raw_grid, intro_vbml)
+        if raw:
+            frames = await hass.async_add_executor_job(build_reveal_frames, raw)
+            try:
+                intro_frame_rows = [
+                    coordinator.model.parse_vbml(_frame_vbml(grid)) for grid in frames
+                ]
+            except Exception as ex:
+                raise HomeAssistantError(f"Invalid intro VBML: {ex}") from ex
+        else:
+            try:
+                intro_frame_rows = [coordinator.model.parse_vbml(intro_vbml)]
+            except Exception as ex:
+                raise HomeAssistantError(f"Invalid intro VBML: {ex}") from ex
+
         previous_persistent = coordinator.persistent_message
         score_duration = call.data.get(CONF_DURATION)
 
+        if coordinator._cancel_cb:
+            coordinator._cancel_cb()
+            coordinator._cancel_cb = None
+        coordinator.temporary_message_expiration = None
+
+        frame_delay = intro_seconds / max(len(intro_frame_rows), 1)
+        for index, rows in enumerate(intro_frame_rows):
+            frame_trans: dict[str, Any] = {
+                CONF_STRATEGY: intro_strategy if index == 0 else "classic",
+            }
+            if index == 0:
+                frame_trans.update(
+                    {
+                        k: v
+                        for k, v in base_json.items()
+                        if k in (CONF_STEP_SIZE, CONF_STEP_INTERVAL_MS)
+                    }
+                )
+            await coordinator.write_and_update_state(
+                {"characters": rows, **frame_trans}
+            )
+            if index < len(intro_frame_rows) - 1:
+                await asyncio.sleep(frame_delay)
+
         if score_duration:
-            # Intro → score (temporary) → previous persistent
             coordinator.persistent_message = previous_persistent
-
-            async def _after_intro(
-                _now, *, _coord=coordinator, _score=score_rows, _trans=transition
-            ) -> None:
-                _coord.temporary_message_expiration = None
-                if _coord._cancel_cb:
-                    _coord._cancel_cb()
-                    _coord._cancel_cb = None
-                expiration = dt_now() + timedelta(seconds=score_duration)
-                _coord.temporary_message_expiration = expiration
-                await _coord.write_and_update_state(
-                    {"characters": _score, **_trans}
-                )
-                _coord._cancel_cb = async_track_point_in_time(
-                    hass, _coord._handle_temporary_message_expiration, expiration
-                )
-
-            if coordinator._cancel_cb:
-                coordinator._cancel_cb()
-            expiration = dt_now() + timedelta(seconds=intro_seconds)
+            expiration = dt_now() + timedelta(seconds=score_duration)
             coordinator.temporary_message_expiration = expiration
             await coordinator.write_and_update_state(
-                {"characters": intro_rows, **transition}
-            )
-            coordinator._cancel_cb = async_track_point_in_time(
-                hass, _after_intro, expiration
-            )
-        else:
-            coordinator.persistent_message = score_rows
-            if coordinator._cancel_cb:
-                coordinator._cancel_cb()
-            expiration = dt_now() + timedelta(seconds=intro_seconds)
-            coordinator.temporary_message_expiration = expiration
-            await coordinator.write_and_update_state(
-                {"characters": intro_rows, **transition}
+                {"characters": score_rows, **score_transition}
             )
             coordinator._cancel_cb = async_track_point_in_time(
                 hass, coordinator._handle_temporary_message_expiration, expiration
             )
-
+        else:
+            coordinator.persistent_message = score_rows
+            await coordinator.write_and_update_state(
+                {"characters": score_rows, **score_transition}
+            )
 async def async_refresh_send_template_schema(hass: HomeAssistant) -> None:
     """Refresh the send_template service UI dropdown from saved templates."""
     templates = await async_load_templates(hass)
