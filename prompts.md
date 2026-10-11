@@ -28,7 +28,7 @@ Personal fork (**Vestaboard-x**) configured to display Stern Insider Connected p
 
 ## Demtoberfest 2026
 
-House event for October 11, 2026. This is the **Demtoberfest 2026** display sequence in the Vestaboard-x panel (the other sequence is **Pinball Scores**). Play the screens below in order on the Vestaboard, then start the sequence again every 15 minutes.
+House event for October 11, 2026. This is the **Demtoberfest 2026** display sequence in the Vestaboard-x panel (the other sequence is **Pinball Scores**). Play the screens below in order on the Vestaboard, then start the sequence again every 15 minutes. Do not put back the screen that was showing before the sequence; the last screen stays up.
 
 The board is 6 rows by 22 columns. Letters display in uppercase. This is a white-background Vestaboard: blue is `{67}` and the white flap is `{70}`. Each message screen holds for 15 seconds (`duration: 15`).
 

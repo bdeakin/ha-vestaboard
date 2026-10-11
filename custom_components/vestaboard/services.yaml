@@ -416,5 +416,5 @@ play_sequence:
 stop_sequence:
   name: Stop display sequence
   description: >
-    Stop the display sequence that is currently playing and restore the
-    previous message.
+    Stop the display sequence that is currently playing. The screen it
+    reached stays on the board.

@@ -1,5 +1,10 @@
 # Version history
 
+## 0.8.8
+
+- A display sequence no longer puts back the screen that was up before it started. The last screen it shows stays on the board, between repeats, when it finishes, and when it is stopped.
+- Each sequence screen becomes the persistent message, so a later temporary message reverts to that screen instead of the older one.
+
 ## 0.8.7
 
 - The Demtoberfest blue wave is now three messages: all white with no strategy, then all blue and all white with the board's own `column` transition (`step_size` 1, `step_interval_ms` 200). The per-ring messages are gone; with any strategy every tile spins its reel on every message, so rings showed up as whole-board stages.

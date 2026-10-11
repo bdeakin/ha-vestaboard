@@ -76,7 +76,6 @@ from .vbml_schema import VBML_SCHEMA
 _LOGGER = logging.getLogger(__name__)
 _SEQUENCE_TASK = "display_sequence_task"
 _SEQUENCE_TOKEN = "display_sequence_token"
-_SEQUENCE_RESTORE = "display_sequence_restore"
 
 
 def _validate_position(value: dict[str, Any]) -> dict[str, Any]:
@@ -624,31 +623,17 @@ async def async_deliver_wave(hass: HomeAssistant, call: ServiceCall) -> None:
             coordinator.persistent_message = _copy_rows(coordinator.data)
 
 
-async def _restore_snapshot(
-    hass: HomeAssistant, snapshot: dict[str, list[list[int]] | None]
-) -> None:
-    for device_id, rows in snapshot.items():
-        if not rows:
-            continue
-        try:
-            coordinator = async_get_coordinator_by_device_id(hass, device_id)
-        except ValueError:
-            continue
-        coordinator.persistent_message = rows
-        _cancel_temporary(coordinator)
-        try:
-            await _write_rows(coordinator, rows, "classic")
-        except Exception:  # noqa: BLE001 - keep the sequence from crashing on restore
-            _LOGGER.exception("Failed to restore the previous Vestaboard message")
-
-
 async def _run_display_sequence(
     hass: HomeAssistant,
     call: ServiceCall,
     sequence: dict[str, Any],
     token: object,
 ) -> None:
-    """Play each template in order. Repeat waits out the sequence interval."""
+    """Play each template in order. Repeat waits out the sequence interval.
+
+    The board is never put back to what it showed before the sequence. Each
+    screen becomes the persistent message, so the last one stays up.
+    """
     bypass = bool(call.data.get(CONF_BYPASS_QUIET_HOURS))
     repeat = bool(call.data.get(CONF_REPEAT))
     pairs = await _coordinators_for_devices(
@@ -661,11 +646,6 @@ async def _run_display_sequence(
             domain.pop(_SEQUENCE_TOKEN, None)
             domain.pop(_SEQUENCE_TASK, None)
         return
-    if _SEQUENCE_RESTORE not in domain:
-        domain[_SEQUENCE_RESTORE] = {
-            device_id: _copy_rows(coordinator.persistent_message)
-            for device_id, coordinator in pairs
-        }
     for _device_id, coordinator in pairs:
         _cancel_temporary(coordinator)
 
@@ -685,6 +665,8 @@ async def _run_display_sequence(
                     )
                     continue
                 await _present_template(hass, pairs, template)
+                for _device_id, coordinator in pairs:
+                    coordinator.persistent_message = _copy_rows(coordinator.data)
                 duration = item.get(CONF_DURATION)
                 if (
                     duration is None
@@ -696,14 +678,11 @@ async def _run_display_sequence(
             if not repeat:
                 break
             elapsed = asyncio.get_running_loop().time() - started
-            await _restore_snapshot(hass, domain.get(_SEQUENCE_RESTORE) or {})
             gap = float(sequence.get("repeat_seconds") or 900) - elapsed
             if gap > 0 and domain.get(_SEQUENCE_TOKEN) is token:
                 await asyncio.sleep(gap)
     finally:
         if domain.get(_SEQUENCE_TOKEN) is token:
-            await _restore_snapshot(hass, domain.get(_SEQUENCE_RESTORE) or {})
-            domain.pop(_SEQUENCE_RESTORE, None)
             domain.pop(_SEQUENCE_TOKEN, None)
             domain.pop(_SEQUENCE_TASK, None)
 
