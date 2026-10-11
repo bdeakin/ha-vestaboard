@@ -11,16 +11,18 @@ ANIMATION_DIAGONAL_BLUE_WAVE = "diagonal-blue-wave"
 # The white flap is 70; 69 is the black flap on this model.
 API_BLUE = 67
 API_WHITE = 70
-# Each ring is one Local API message. step_size covers the whole ring so
-# those tiles start together. The native diagonal step_size does not.
-CASCADE_STEP_INTERVAL_MS = 50
+# Do not send strategy "diagonal". On this board that wipe runs in three
+# stages and spins every flap through the reel. "random" with step_size 132
+# starts every changed tile together and leaves the others still.
+CASCADE_STEP_INTERVAL_MS = 1
 CASCADE_STEP_SIZE = 132
-CASCADE_SETTLE_SECONDS = 5
-CASCADE_RING_SECONDS = 0.45
+# Blank (0) to the white chip is a long spin. Rings then hop 70 -> 67.
+CASCADE_SETTLE_SECONDS = 12
+CASCADE_RING_SECONDS = 1.0
 HOLD_SECONDS = 15
 REPEAT_SECONDS = 900
 EVENT_VERSION = 4
-SEQUENCE_VERSION = 3
+SEQUENCE_VERSION = 4
 
 ANNOUNCEMENT_ID = "demtoberfest-announcement"
 WAVE_ID = "demtoberfest-blue-wave"
@@ -182,8 +184,8 @@ DEMTOBERFEST_SEQUENCE: dict[str, Any] = {
     "name": "Demtoberfest 2026",
     "description": (
         "House event for October 11, 2026. Message screens stay up for "
-        "15 seconds. The blue wave fills by expanding diagonals from the "
-        "top left, then clears back to white along the same path."
+        "15 seconds. The blue wave flips one expanding diagonal at a time, "
+        "without the board's diagonal wipe."
     ),
     "sequence_version": SEQUENCE_VERSION,
     "repeat_seconds": REPEAT_SECONDS,

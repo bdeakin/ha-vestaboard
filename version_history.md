@@ -1,5 +1,10 @@
 # Version history
 
+## 0.8.6
+
+- Stop sending `strategy: diagonal` for the Demtoberfest wave. On this board that wipe runs in three stages and spins tiles through other characters whenever a new message arrives.
+- Flip each expanding ring with `strategy: random` and `step_size` 132, and wait 1 second so those flaps finish. The opening white board waits 12 seconds.
+
 ## 0.8.5
 
 - Fill the Demtoberfest blue wave one expanding diagonal at a time: `(0, 0)`, then `(1, 0) (1, 1) (0, 1)`, then the next square edge, through column 21, then back to white on the same path.

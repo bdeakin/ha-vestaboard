@@ -511,7 +511,7 @@ async def _write_cascade(
     *,
     strategy: str | None = None,
 ) -> None:
-    """Send one full board. step_size covers every tile in this ring."""
+    """Send one full board. Changed tiles flip together; nothing else moves."""
     payload: dict[str, Any] = {"characters": rows}
     if strategy:
         payload[CONF_STRATEGY] = strategy
@@ -524,8 +524,9 @@ async def _play_diagonal_cascade(pairs: list[tuple[str, Any]]) -> None:
     """Fill blue, then white, one expanding diagonal ring at a time.
 
     Ring 0 is (0, 0). Ring 1 is (1, 0), (1, 1), and (0, 1). Each later ring
-    is the next square edge, ending at column 21. The saved template grid is
-    not sent. step_size covers the ring so those tiles start together.
+    is the next square edge, ending at column 21. strategy "random" flips
+    only the tiles that changed. "diagonal" restarts the board's three-stage
+    wipe and is not used.
     """
     rings = diagonal_rings()
     board = solid_board(API_WHITE)
@@ -535,7 +536,7 @@ async def _play_diagonal_cascade(pairs: list[tuple[str, Any]]) -> None:
         CASCADE_RING_SECONDS,
     )
     for _device_id, coordinator in pairs:
-        await _write_cascade(coordinator, board, strategy="diagonal")
+        await _write_cascade(coordinator, board, strategy="random")
     await asyncio.sleep(CASCADE_SETTLE_SECONDS)
     for color in (API_BLUE, API_WHITE):
         for ring in rings:
@@ -543,7 +544,7 @@ async def _play_diagonal_cascade(pairs: list[tuple[str, Any]]) -> None:
                 board[row][col] = color
             frame = [row[:] for row in board]
             for _device_id, coordinator in pairs:
-                await _write_cascade(coordinator, frame, strategy="diagonal")
+                await _write_cascade(coordinator, frame, strategy="random")
             await asyncio.sleep(CASCADE_RING_SECONDS)
 
 
