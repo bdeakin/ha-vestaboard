@@ -37,6 +37,17 @@ Game templates also store an `intro` VBML (6×22 `rawCharacters` pixel art, ≥8
 
 House-event sequences such as Demtoberfest 2026 (specified in `prompts.md`) stay on these same paths. Static boards are `vestaboard.message` layouts held with `duration`. A short animation such as the blue wave is a run of full-board frames, the same kind of multi-frame send the game intros already use.
 
+### Display sequences
+
+A display sequence is an ordered list of saved templates. The Vestaboard-x panel shows the sequence first, then the templates inside it.
+
+| Sequence | Templates |
+| --- | --- |
+| Pinball Scores | Location Announcement, then each Stern game |
+| Demtoberfest 2026 | Announcement, blue wave, re-elect, pinball, Instagram |
+
+`vestaboard.play_sequence` walks that list. Message screens hold for the item's `duration` (120 seconds for Demtoberfest). The blue wave template (`animation: diagonal-blue-wave`) plays one diagonal at a time: on step `d`, cell `(x, y)` is blue only when `x + y = d`. Demtoberfest can repeat every 15 minutes until `vestaboard.stop_sequence`. Both sequences are seeded into `vestaboard_templates` storage on integration startup, including installs that already have game templates.
+
 ## Message composition
 
 | Source | When used | Notes |

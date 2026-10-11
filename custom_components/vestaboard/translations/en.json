@@ -126,6 +126,14 @@
     "send_template": {
       "name": "Send saved template",
       "description": "Send a VBML layout saved in the Vestaboard-x panel (for example a game top-score board) by picking it from a dropdown."
+    },
+    "play_sequence": {
+      "name": "Play display sequence",
+      "description": "Play the templates in a display sequence such as Pinball Scores or Demtoberfest 2026."
+    },
+    "stop_sequence": {
+      "name": "Stop display sequence",
+      "description": "Stop the display sequence that is currently playing and restore the previous message."
     }
   }
 }

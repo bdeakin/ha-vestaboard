@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from datetime import timedelta
+import logging
 from typing import Any
 
 import voluptuous as vol
@@ -30,6 +31,8 @@ from .const import (
     CONF_MESSAGE,
     CONF_NAME,
     CONF_PROPS,
+    CONF_REPEAT,
+    CONF_SEQUENCE_ID,
     CONF_STEP_INTERVAL_MS,
     CONF_STEP_SIZE,
     CONF_STRATEGY,
@@ -43,12 +46,29 @@ from .const import (
     DEFAULT_INTRO_DURATION,
     DOMAIN,
     SERVICE_MESSAGE,
+    SERVICE_PLAY_SEQUENCE,
     SERVICE_SEND_TEMPLATE,
+    SERVICE_STOP_SEQUENCE,
+)
+from .demtoberfest import (
+    ANIMATION_DIAGONAL_BLUE_WAVE,
+    WAVE_SECONDS,
+    build_diagonal_wave_frames,
 )
 from .game_art import build_reveal_frames
 from .helpers import async_get_coordinator_by_device_id
-from .template_store import async_get_template, async_load_templates
+from .template_store import (
+    async_get_sequence,
+    async_get_template,
+    async_load_sequences,
+    async_load_templates,
+)
 from .vbml_schema import VBML_SCHEMA
+
+_LOGGER = logging.getLogger(__name__)
+_SEQUENCE_TASK = "display_sequence_task"
+_SEQUENCE_TOKEN = "display_sequence_token"
+_SEQUENCE_RESTORE = "display_sequence_restore"
 
 
 def _validate_position(value: dict[str, Any]) -> dict[str, Any]:
@@ -126,6 +146,15 @@ SERVICE_SEND_TEMPLATE_SCHEMA = vol.Schema(
         vol.Optional(CONF_INTRO_DURATION): vol.All(
             vol.Coerce(int), vol.Range(min=3, max=60)
         ),
+        vol.Optional(CONF_BYPASS_QUIET_HOURS): cv.boolean,
+    }
+)
+
+SERVICE_PLAY_SEQUENCE_SCHEMA = vol.Schema(
+    {
+        vol.Required(CONF_DEVICE_ID): vol.All(cv.ensure_list, [cv.string]),
+        vol.Required(CONF_SEQUENCE_ID): cv.string,
+        vol.Optional(CONF_REPEAT, default=False): cv.boolean,
         vol.Optional(CONF_BYPASS_QUIET_HOURS): cv.boolean,
     }
 )
@@ -420,6 +449,206 @@ async def async_deliver_intro_then_vbml(
             await coordinator.write_and_update_state(
                 {"characters": score_rows, **score_transition}
             )
+
+
+def _cancel_temporary(coordinator) -> None:
+    """Drop a pending revert so a sequence is not replaced mid-play."""
+    if coordinator._cancel_cb:
+        coordinator._cancel_cb()
+        coordinator._cancel_cb = None
+    coordinator.temporary_message_expiration = None
+
+
+def _copy_rows(rows: list[list[int]] | None) -> list[list[int]] | None:
+    if not rows:
+        return None
+    return [list(row) for row in rows]
+
+
+async def _coordinators_for_devices(
+    hass: HomeAssistant, device_ids: list[str], bypass: bool
+) -> list[tuple[str, Any]]:
+    pairs: list[tuple[str, Any]] = []
+    for device_id in device_ids:
+        try:
+            coordinator = async_get_coordinator_by_device_id(hass, device_id)
+        except ValueError as err:
+            raise HomeAssistantError(str(err)) from err
+        if not bypass and coordinator.quiet_hours():
+            continue
+        if coordinator.model is None:
+            await coordinator.async_request_refresh()
+        if coordinator.model is None:
+            raise HomeAssistantError("Vestaboard model is not initialized")
+        pairs.append((device_id, coordinator))
+    return pairs
+
+
+async def _write_rows(coordinator, rows: list[list[int]], strategy: str) -> None:
+    await coordinator.write_and_update_state(
+        {"characters": rows, CONF_STRATEGY: strategy}
+    )
+
+
+async def _play_grids(
+    pairs: list[tuple[str, Any]],
+    grids: list[list[list[int]]],
+    total_seconds: float,
+    first_strategy: str = "classic",
+) -> None:
+    """Send the same full-board frames to each device, then wait between them."""
+    parsed: list[list[list[list[int]]]] = []
+    for _device_id, coordinator in pairs:
+        try:
+            parsed.append(
+                [coordinator.model.parse_vbml(_frame_vbml(grid)) for grid in grids]
+            )
+        except Exception as ex:
+            raise HomeAssistantError(f"Invalid frame: {ex}") from ex
+    frame_count = len(grids)
+    delay = total_seconds / max(frame_count, 1)
+    for index in range(frame_count):
+        strategy = first_strategy if index == 0 else "classic"
+        for pair_index, (_device_id, coordinator) in enumerate(pairs):
+            await _write_rows(coordinator, parsed[pair_index][index], strategy)
+        if index < frame_count - 1:
+            await asyncio.sleep(delay)
+
+
+async def _present_template(
+    hass: HomeAssistant, pairs: list[tuple[str, Any]], template: dict[str, Any]
+) -> None:
+    """Show one sequence template without scheduling a revert."""
+    if template.get("animation") == ANIMATION_DIAGONAL_BLUE_WAVE:
+        frames = await hass.async_add_executor_job(build_diagonal_wave_frames)
+        await _play_grids(pairs, frames, WAVE_SECONDS)
+        return
+
+    intro = template.get("intro")
+    if isinstance(intro, dict) and intro.get(CONF_COMPONENTS):
+        raw = await hass.async_add_executor_job(_intro_raw_grid, intro)
+        if raw:
+            frames = await hass.async_add_executor_job(build_reveal_frames, raw)
+            await _play_grids(pairs, frames, DEFAULT_INTRO_DURATION, "column")
+
+    vbml = dict(template.get(CONF_VBML) or {})
+    vbml[CONF_PROPS] = await async_resolve_props(
+        hass, list(template.get(CONF_PROPS) or [])
+    )
+    for _device_id, coordinator in pairs:
+        try:
+            rows = coordinator.model.parse_vbml(vbml)
+        except Exception as ex:
+            raise HomeAssistantError(f"Invalid VBML payload: {ex}") from ex
+        await _write_rows(coordinator, rows, "column")
+
+
+async def async_deliver_wave(hass: HomeAssistant, call: ServiceCall) -> None:
+    """Play the diagonal blue wave once."""
+    frames = await hass.async_add_executor_job(build_diagonal_wave_frames)
+    bypass = bool(call.data.get(CONF_BYPASS_QUIET_HOURS))
+    pairs = await _coordinators_for_devices(hass, list(call.data[CONF_DEVICE_ID]), bypass)
+    for _device_id, coordinator in pairs:
+        _cancel_temporary(coordinator)
+    if not pairs:
+        return
+    await _play_grids(pairs, frames, WAVE_SECONDS)
+    duration = call.data.get(CONF_DURATION)
+    for _device_id, coordinator in pairs:
+        if duration:
+            expiration = dt_now() + timedelta(seconds=duration)
+            coordinator.temporary_message_expiration = expiration
+            coordinator._cancel_cb = async_track_point_in_time(
+                hass, coordinator._handle_temporary_message_expiration, expiration
+            )
+        else:
+            coordinator.persistent_message = _copy_rows(coordinator.data)
+
+
+async def _restore_snapshot(
+    hass: HomeAssistant, snapshot: dict[str, list[list[int]] | None]
+) -> None:
+    for device_id, rows in snapshot.items():
+        if not rows:
+            continue
+        try:
+            coordinator = async_get_coordinator_by_device_id(hass, device_id)
+        except ValueError:
+            continue
+        coordinator.persistent_message = rows
+        _cancel_temporary(coordinator)
+        try:
+            await _write_rows(coordinator, rows, "classic")
+        except Exception:  # noqa: BLE001 - keep the sequence from crashing on restore
+            _LOGGER.exception("Failed to restore the previous Vestaboard message")
+
+
+async def _run_display_sequence(
+    hass: HomeAssistant,
+    call: ServiceCall,
+    sequence: dict[str, Any],
+    token: object,
+) -> None:
+    """Play each template in order. Repeat waits out the sequence interval."""
+    bypass = bool(call.data.get(CONF_BYPASS_QUIET_HOURS))
+    repeat = bool(call.data.get(CONF_REPEAT))
+    pairs = await _coordinators_for_devices(
+        hass, list(call.data[CONF_DEVICE_ID]), bypass
+    )
+    domain = hass.data.setdefault(DOMAIN, {})
+    if not pairs:
+        _LOGGER.info("Display sequence skipped because the board is in quiet hours")
+        if domain.get(_SEQUENCE_TOKEN) is token:
+            domain.pop(_SEQUENCE_TOKEN, None)
+            domain.pop(_SEQUENCE_TASK, None)
+        return
+    if _SEQUENCE_RESTORE not in domain:
+        domain[_SEQUENCE_RESTORE] = {
+            device_id: _copy_rows(coordinator.persistent_message)
+            for device_id, coordinator in pairs
+        }
+    for _device_id, coordinator in pairs:
+        _cancel_temporary(coordinator)
+
+    try:
+        while domain.get(_SEQUENCE_TOKEN) is token:
+            started = asyncio.get_running_loop().time()
+            for item in sequence.get("items") or []:
+                if domain.get(_SEQUENCE_TOKEN) is not token:
+                    return
+                template_id = str(item.get("template_id") or "")
+                template = await async_get_template(hass, template_id)
+                if template is None:
+                    _LOGGER.warning(
+                        "Display sequence %s is missing template %s",
+                        sequence.get("name"),
+                        template_id,
+                    )
+                    continue
+                await _present_template(hass, pairs, template)
+                duration = item.get(CONF_DURATION)
+                if (
+                    duration is None
+                    and template.get("animation") != ANIMATION_DIAGONAL_BLUE_WAVE
+                ):
+                    duration = sequence.get("default_duration")
+                if duration:
+                    await asyncio.sleep(float(duration))
+            if not repeat:
+                break
+            elapsed = asyncio.get_running_loop().time() - started
+            await _restore_snapshot(hass, domain.get(_SEQUENCE_RESTORE) or {})
+            gap = float(sequence.get("repeat_seconds") or 900) - elapsed
+            if gap > 0 and domain.get(_SEQUENCE_TOKEN) is token:
+                await asyncio.sleep(gap)
+    finally:
+        if domain.get(_SEQUENCE_TOKEN) is token:
+            await _restore_snapshot(hass, domain.get(_SEQUENCE_RESTORE) or {})
+            domain.pop(_SEQUENCE_RESTORE, None)
+            domain.pop(_SEQUENCE_TOKEN, None)
+            domain.pop(_SEQUENCE_TASK, None)
+
+
 async def async_refresh_send_template_schema(hass: HomeAssistant) -> None:
     """Refresh the send_template service UI dropdown from saved templates."""
     templates = await async_load_templates(hass)
@@ -540,6 +769,73 @@ async def async_refresh_send_template_schema(hass: HomeAssistant) -> None:
     )
 
 
+async def async_refresh_play_sequence_schema(hass: HomeAssistant) -> None:
+    """Refresh the play_sequence dropdown from saved display sequences."""
+    sequences = await async_load_sequences(hass)
+    options = [
+        {"label": item.get("name") or item.get("id"), "value": item.get("id")}
+        for item in sequences
+        if item.get("id")
+    ]
+    if not options:
+        options = [{"label": "(no display sequences)", "value": ""}]
+
+    service.async_set_service_schema(
+        hass,
+        DOMAIN,
+        SERVICE_PLAY_SEQUENCE,
+        {
+            "name": "Play display sequence",
+            "description": (
+                "Play the templates in a display sequence, such as "
+                "Pinball Scores or Demtoberfest 2026."
+            ),
+            "fields": {
+                CONF_DEVICE_ID: {
+                    "name": "Device",
+                    "description": "Vestaboard to play the sequence on.",
+                    "required": True,
+                    "selector": {
+                        "device": {"integration": DOMAIN, "multiple": True}
+                    },
+                },
+                CONF_SEQUENCE_ID: {
+                    "name": "Display sequence",
+                    "description": "Pinball Scores or Demtoberfest 2026.",
+                    "required": True,
+                    "selector": {
+                        "select": {
+                            "mode": "dropdown",
+                            "options": options,
+                        }
+                    },
+                },
+                CONF_REPEAT: {
+                    "name": "Repeat",
+                    "description": (
+                        "Start the sequence again every 15 minutes until stopped. "
+                        "Demtoberfest 2026 is built for this."
+                    ),
+                    "selector": {"boolean": {}},
+                },
+                CONF_BYPASS_QUIET_HOURS: {
+                    "name": "Bypass quiet hours",
+                    "description": (
+                        "Ignore quiet hours and play the sequence."
+                    ),
+                    "selector": {"boolean": {}},
+                },
+            },
+        },
+    )
+
+
+async def _async_refresh_service_schemas(hass: HomeAssistant) -> None:
+    """Seed stored templates and sequences, then refresh action dropdowns."""
+    await async_refresh_send_template_schema(hass)
+    await async_refresh_play_sequence_schema(hass)
+
+
 @callback
 def async_setup_services(hass: HomeAssistant) -> None:
     """Set up services for the Vestaboard integration."""
@@ -567,11 +863,61 @@ def async_setup_services(hass: HomeAssistant) -> None:
             hass, list(saved.get(CONF_PROPS) or [])
         )
 
+        if saved.get("animation") == ANIMATION_DIAGONAL_BLUE_WAVE:
+            await async_deliver_wave(hass, call)
+            return
+
         intro = saved.get("intro")
         if isinstance(intro, dict) and intro.get(CONF_COMPONENTS):
             await async_deliver_intro_then_vbml(hass, call, dict(intro), vbml)
         else:
             await async_deliver_vbml(hass, call, vbml)
+
+    async def _async_service_play_sequence(call: ServiceCall) -> None:
+        """Play a display sequence in the background."""
+        sequence_id = (call.data.get(CONF_SEQUENCE_ID) or "").strip()
+        if not sequence_id:
+            raise HomeAssistantError("Select a display sequence")
+        sequence = await async_get_sequence(hass, sequence_id)
+        if sequence is None:
+            raise HomeAssistantError(f"Unknown display sequence: {sequence_id}")
+
+        domain = hass.data.setdefault(DOMAIN, {})
+        token = object()
+        domain[_SEQUENCE_TOKEN] = token
+        previous = domain.get(_SEQUENCE_TASK)
+        if previous and not previous.done():
+            previous.cancel()
+
+        async def _runner() -> None:
+            try:
+                await _run_display_sequence(hass, call, sequence, token)
+            except asyncio.CancelledError:
+                raise
+            except Exception:
+                _LOGGER.exception(
+                    "Display sequence %s failed", sequence.get("name")
+                )
+
+        domain[_SEQUENCE_TASK] = hass.async_create_task(_runner())
+
+    async def _async_service_stop_sequence(_call: ServiceCall) -> None:
+        """Stop the display sequence that is currently playing."""
+        task = hass.data.get(DOMAIN, {}).get(_SEQUENCE_TASK)
+        if task and not task.done():
+            task.cancel()
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_PLAY_SEQUENCE,
+        _async_service_play_sequence,
+        schema=SERVICE_PLAY_SEQUENCE_SCHEMA,
+    )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_STOP_SEQUENCE,
+        _async_service_stop_sequence,
+    )
 
     hass.services.async_register(
         DOMAIN,
@@ -585,4 +931,4 @@ def async_setup_services(hass: HomeAssistant) -> None:
         _async_service_send_template,
         schema=SERVICE_SEND_TEMPLATE_SCHEMA,
     )
-    hass.async_create_task(async_refresh_send_template_schema(hass))
+    hass.async_create_task(_async_refresh_service_schemas(hass))

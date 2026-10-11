@@ -14,10 +14,10 @@ from homeassistant.helpers import device_registry as dr
 
 from .const import DOMAIN
 from .helpers import async_get_coordinator_by_device_id
-from .services import async_refresh_send_template_schema, async_resolve_props
+from .services import _async_refresh_service_schemas, async_resolve_props
 from .template_store import (
     async_delete_template,
-    async_load_templates,
+    async_load_library,
     async_upsert_template,
 )
 from .vbml_schema import validate_vbml_payload
@@ -188,9 +188,11 @@ async def websocket_list_templates(
     connection: websocket_api.ActiveConnection,
     msg: dict[str, Any],
 ) -> None:
-    """Return saved VBML templates."""
-    templates = await async_load_templates(hass)
-    connection.send_result(msg["id"], {"templates": templates})
+    """Return saved templates and the display sequences that contain them."""
+    templates, sequences = await async_load_library(hass)
+    connection.send_result(
+        msg["id"], {"templates": templates, "sequences": sequences}
+    )
 
 
 @websocket_api.websocket_command(
@@ -243,7 +245,7 @@ async def websocket_save_template(
         connection.send_result(msg["id"], {"ok": False, "error": str(err)})
         return
 
-    await async_refresh_send_template_schema(hass)
+    await _async_refresh_service_schemas(hass)
     connection.send_result(msg["id"], {"ok": True, "template": saved})
 
 
@@ -265,5 +267,5 @@ async def websocket_delete_template(
     except ValueError as err:
         connection.send_result(msg["id"], {"ok": False, "error": str(err)})
         return
-    await async_refresh_send_template_schema(hass)
+    await _async_refresh_service_schemas(hass)
     connection.send_result(msg["id"], {"ok": True})

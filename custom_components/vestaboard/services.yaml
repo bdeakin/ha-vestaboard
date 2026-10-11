@@ -373,3 +373,48 @@ send_template:
       description: Ignore quiet hours setting and send the message to the Vestaboard.
       selector:
         boolean:
+
+play_sequence:
+  name: Play display sequence
+  description: >
+    Play the templates in a display sequence. Pinball Scores is the location
+    announcement and each Stern game. Demtoberfest 2026 is the house event:
+    announcement, blue wave, re-elect, pinball, and Instagram.
+  fields:
+    device_id:
+      name: Device
+      description: Vestaboard to play the sequence on.
+      required: true
+      selector:
+        device:
+          integration: vestaboard
+          multiple: true
+      example: device_id
+    sequence_id:
+      name: Display sequence
+      description: >
+        Pinball Scores or Demtoberfest 2026. Options refresh when the
+        integration loads.
+      required: true
+      selector:
+        select:
+          mode: dropdown
+          options: []
+    repeat:
+      name: Repeat
+      description: >
+        Start the sequence again every 15 minutes until it is stopped.
+        Demtoberfest 2026 is built for this.
+      selector:
+        boolean:
+    bypass_quiet_hours:
+      name: Bypass quiet hours
+      description: Ignore quiet hours and play the sequence.
+      selector:
+        boolean:
+
+stop_sequence:
+  name: Stop display sequence
+  description: >
+    Stop the display sequence that is currently playing and restore the
+    previous message.

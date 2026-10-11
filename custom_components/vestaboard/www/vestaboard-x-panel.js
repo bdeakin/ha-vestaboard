@@ -13,6 +13,9 @@ class VestaboardXPanel extends HTMLElement {
     this._props = this._defaultProps();
     this._vbmlText = this._defaultVbml();
     this._templates = [];
+    this._sequences = [];
+    this._selectedSequenceId = "";
+    this._repeatSequence = true;
     this._selectedTemplateId = "";
     this._templateName = "Elvira's House of Horrors";
     this._modalOpen = false;
@@ -185,9 +188,19 @@ class VestaboardXPanel extends HTMLElement {
         type: "vestaboard/list_templates",
       });
       this._templates = result.templates || [];
+      this._sequences = result.sequences || [];
+      if (
+        !this._selectedSequenceId ||
+        !this._sequences.some((s) => s.id === this._selectedSequenceId)
+      ) {
+        const pinball = this._sequences.find((s) => s.id === "pinball-scores");
+        this._selectedSequenceId = (pinball || this._sequences[0] || {}).id || "";
+      }
+      const inSequence = this._templatesForSequence(this._selectedSequenceId);
       const preferred =
         selectId ||
         this._selectedTemplateId ||
+        (inSequence[0] && inSequence[0].id) ||
         (this._templates[0] && this._templates[0].id);
       if (preferred) {
         const match = this._templates.find((t) => t.id === preferred);
@@ -198,6 +211,26 @@ class VestaboardXPanel extends HTMLElement {
       this._sendStatus = `Failed to load templates: ${err.message || err}`;
       this._render();
     }
+  }
+
+  _selectedSequence() {
+    return this._sequences.find((s) => s.id === this._selectedSequenceId) || null;
+  }
+
+  _templatesForSequence(sequenceId) {
+    const sequence = this._sequences.find((s) => s.id === sequenceId);
+    if (!sequence) return this._sequences.length ? [] : this._templates;
+    const byId = new Map(this._templates.map((t) => [t.id, t]));
+    return (sequence.items || [])
+      .map((item) => byId.get(item.template_id))
+      .filter(Boolean);
+  }
+
+  _templateMeta(item, template) {
+    if (template && template.animation === "diagonal-blue-wave") return "plays once";
+    if (item && item.duration === 120) return "2 minutes";
+    if (item && item.duration) return `${item.duration} seconds`;
+    return "";
   }
 
   _applyTemplate(template, render = true) {
@@ -642,8 +675,13 @@ class VestaboardXPanel extends HTMLElement {
           device_id: this._deviceId,
           template_id: this._selectedTemplateId,
         });
+        const selected = this._templates.find(
+          (t) => t.id === this._selectedTemplateId
+        );
         this._sendStatus =
-          "Sent template (intro plays first when the game has one).";
+          selected && selected.animation === "diagonal-blue-wave"
+            ? "Playing the blue wave."
+            : "Sent template (intro plays first when the game has one).";
       } catch (err) {
         this._sendStatus = String(err.message || err);
       }
@@ -680,6 +718,47 @@ class VestaboardXPanel extends HTMLElement {
     this._render();
   }
 
+  async _playSequence() {
+    if (!this._hass || !this._deviceId) {
+      this._sendStatus = "Select a Vestaboard device first.";
+      this._render();
+      return;
+    }
+    const sequence = this._selectedSequence();
+    if (!sequence) {
+      this._sendStatus = "Select a display sequence first.";
+      this._render();
+      return;
+    }
+    const repeat = Boolean(sequence.repeat_seconds && this._repeatSequence);
+    try {
+      await this._hass.callService("vestaboard", "play_sequence", {
+        device_id: this._deviceId,
+        sequence_id: sequence.id,
+        repeat,
+      });
+      this._sendStatus = repeat
+        ? `Playing ${sequence.name}. It starts again every ${Math.round(
+            sequence.repeat_seconds / 60
+          )} minutes until you stop it.`
+        : `Playing ${sequence.name}.`;
+    } catch (err) {
+      this._sendStatus = String(err.message || err);
+    }
+    this._render();
+  }
+
+  async _stopSequence() {
+    if (!this._hass) return;
+    try {
+      await this._hass.callService("vestaboard", "stop_sequence", {});
+      this._sendStatus = "Stopped the display sequence.";
+    } catch (err) {
+      this._sendStatus = String(err.message || err);
+    }
+    this._render();
+  }
+
   _addProp() {
     this._props = [
       ...this._props,
@@ -698,15 +777,28 @@ class VestaboardXPanel extends HTMLElement {
     root.querySelector("#device")?.addEventListener("change", (e) => {
       this._deviceId = e.target.value;
     });
-    root.querySelector("#template-select")?.addEventListener("change", (e) => {
-      const id = e.target.value;
-      if (!id) {
-        this._selectedTemplateId = "";
-        return;
-      }
-      const match = this._templates.find((t) => t.id === id);
-      if (match) this._applyTemplate(match, true);
+    root.querySelector("#sequence-select")?.addEventListener("change", (e) => {
+      this._selectedSequenceId = e.target.value;
+      const templates = this._templatesForSequence(this._selectedSequenceId);
+      if (templates[0]) this._applyTemplate(templates[0], true);
+      else this._render();
     });
+    root.querySelectorAll("[data-sequence-template]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const id = btn.getAttribute("data-sequence-template");
+        const match = this._templates.find((t) => t.id === id);
+        if (match) this._applyTemplate(match, true);
+      });
+    });
+    root.querySelector("#repeat-sequence")?.addEventListener("change", (e) => {
+      this._repeatSequence = e.target.checked;
+    });
+    root.querySelector("#play-sequence")?.addEventListener("click", () =>
+      this._playSequence()
+    );
+    root.querySelector("#stop-sequence")?.addEventListener("click", () =>
+      this._stopSequence()
+    );
     root.querySelector("#template-name")?.addEventListener("change", (e) => {
       this._templateName = e.target.value;
     });
@@ -981,6 +1073,25 @@ class VestaboardXPanel extends HTMLElement {
       .status.valid { background: rgba(67,160,71,0.18); color: #b7efc5; }
       .status.invalid { background: rgba(219,68,55,0.18); color: #ffc9c5; }
       .status.unknown { background: rgba(244,180,0,0.15); color: #ffe08a; }
+      .sequence-list { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+      button.sequence-item {
+        width: 100%;
+        text-align: left;
+        background: transparent;
+        color: var(--primary-text-color);
+        border: 1px solid transparent;
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: center;
+      }
+      button.sequence-item.active {
+        border-color: var(--primary-color, #03a9f4);
+        background: rgba(3, 169, 244, 0.12);
+      }
+      button.sequence-item .meta { opacity: 0.7; font-size: 0.85rem; white-space: nowrap; }
+      .repeat-label { display: flex; align-items: center; gap: 8px; font-weight: 500; margin: 0; }
+      .repeat-label input { width: auto; }
     `;
   }
 
@@ -1070,20 +1181,41 @@ class VestaboardXPanel extends HTMLElement {
       </div>`
       : "";
 
-    const templateOptions = [
-      `<option value="">— unsaved draft —</option>`,
-      ...this._templates.map(
-        (t) =>
-          `<option value="${this._escapeHtml(t.id)}" ${
-            t.id === this._selectedTemplateId ? "selected" : ""
-          }>${this._escapeHtml(t.name)}</option>`
-      ),
-    ].join("");
+    const sequence = this._selectedSequence();
+    const sequenceOptions = this._sequences
+      .map(
+        (s) =>
+          `<option value="${this._escapeHtml(s.id)}" ${
+            s.id === this._selectedSequenceId ? "selected" : ""
+          }>${this._escapeHtml(s.name)}</option>`
+      )
+      .join("");
+    const sequenceItems = new Map(
+      ((sequence && sequence.items) || []).map((item) => [item.template_id, item])
+    );
+    const visibleTemplates = this._templatesForSequence(this._selectedSequenceId);
+    const templateList = visibleTemplates
+      .map((t) => {
+        const meta = this._templateMeta(sequenceItems.get(t.id), t);
+        const active = t.id === this._selectedTemplateId ? "active" : "";
+        return `<li><button type="button" class="sequence-item ${active}" data-sequence-template="${this._escapeHtml(
+          t.id
+        )}"><span>${this._escapeHtml(t.name)}</span><span class="meta">${this._escapeHtml(
+          meta
+        )}</span></button></li>`;
+      })
+      .join("");
+    const repeatControl =
+      sequence && sequence.repeat_seconds
+        ? `<label class="repeat-label"><input id="repeat-sequence" type="checkbox" ${
+            this._repeatSequence ? "checked" : ""
+          } /> Start again every ${Math.round(sequence.repeat_seconds / 60)} minutes</label>`
+        : "";
 
     this.shadowRoot.innerHTML = `
       <style>${this._styles()}</style>
       <h1>Vestaboard-x</h1>
-      <p class="lead">Saved templates include the rainbow <strong>Location Announcement</strong> and each Stern game board. Use <code>vestaboard.send_template</code> in automations, or copy YAML for a custom <code>vestaboard.message</code>.</p>
+      <p class="lead">Display sequences group the boards that play together. <strong>Pinball Scores</strong> is the location announcement and each game. <strong>Demtoberfest 2026</strong> is the house event.</p>
       <div class="card">
         <label for="device">Device</label>
         <select id="device">
@@ -1092,18 +1224,19 @@ class VestaboardXPanel extends HTMLElement {
         </select>
       </div>
       <div class="card">
-        <h2 style="margin:0 0 12px;font-size:1.1rem;">Saved templates</h2>
-        <div class="template-grid">
-          <div>
-            <label for="template-select">Load template</label>
-            <select id="template-select">${templateOptions}</select>
-          </div>
-          <div>
-            <label for="template-name">Template name</label>
-            <input id="template-name" type="text" value="${this._escapeHtml(
-              this._templateName || ""
-            )}" placeholder="e.g. Godzilla" />
-          </div>
+        <h2 style="margin:0 0 12px;font-size:1.1rem;">Display sequence</h2>
+        <label for="sequence-select">Sequence</label>
+        <select id="sequence-select">${sequenceOptions}</select>
+        <p class="hint">${this._escapeHtml((sequence && sequence.description) || "")}</p>
+        <h3 style="margin:14px 0 0;font-size:1rem;">Templates</h3>
+        <ul class="sequence-list">${
+          templateList || "<li class='hint'>No templates in this sequence.</li>"
+        }</ul>
+        <div style="margin-top:12px;">
+          <label for="template-name">Template name</label>
+          <input id="template-name" type="text" value="${this._escapeHtml(
+            this._templateName || ""
+          )}" placeholder="e.g. Godzilla" />
         </div>
         <div class="actions">
           <button type="button" id="save-template">Save</button>
@@ -1112,12 +1245,15 @@ class VestaboardXPanel extends HTMLElement {
           <button class="danger" type="button" id="delete-template">Delete</button>
           <button type="button" id="copy-automation">Copy for automation</button>
         </div>
+        <div class="actions">
+          <button type="button" id="play-sequence">Play sequence</button>
+          <button class="secondary" type="button" id="stop-sequence">Stop</button>
+          ${repeatControl}
+        </div>
         <p class="hint" style="margin-top:10px;">
-          Preferred: Automations → <code>vestaboard.send_template</code> and pick a template from the dropdown
-          (no paste). Game boards play a short pixel-art intro (sword, bolt, shark fin, …)
-          then the high-score layout. Sensor values are live at send time.
-          <strong>Location Announcement</strong> is the rainbow
-          <code>NOW DISPLAYING HIGH SCORES FOR</code> board.
+          Click a template to edit it. <strong>Play sequence</strong> runs every template in order.
+          Demtoberfest message screens hold for 2 minutes and the blue wave plays once.
+          Game boards still play their pixel-art intro, then the high-score layout.
         </p>
       </div>
       <div class="card">

@@ -1,5 +1,11 @@
 # Version history
 
+## 0.8.0
+
+- Add display sequences to the Vestaboard-x panel. A sequence is an ordered list of templates.
+- Seed **Pinball Scores** (location announcement, then each Stern game) and **Demtoberfest 2026** (announcement, blue wave, re-elect, pinball, Instagram), including on installs that already have saved templates.
+- Demtoberfest message screens hold for 2 minutes. The blue wave plays one diagonal at a time. Play can start the sequence again every 15 minutes until stopped.
+
 ## 0.7.2
 
 - Record the Demtoberfest 2026 sequence in `prompts.md`: announcement, diagonal blue wave, re-elect, pinball, and Instagram screens, repeating every 15 minutes.

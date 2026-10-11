@@ -11,6 +11,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.storage import Store
 
 from .const import DOMAIN
+from .demtoberfest import DEMTOBERFEST_SEQUENCE, DEMTOBERFEST_TEMPLATES
 from .game_art import (
     COLOR_BLUE,
     COLOR_GREEN,
@@ -235,6 +236,11 @@ DEFAULT_TEMPLATES: list[dict[str, Any]] = [
     ),
 ]
 
+DEFAULT_TEMPLATES.extend(DEMTOBERFEST_TEMPLATES)
+
+PINBALL_SEQUENCE_ID = "pinball-scores"
+PINBALL_DEFAULT_DURATION = 30
+
 
 def _utc_now_iso() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
@@ -326,6 +332,67 @@ def _has_location_prop(props: list[dict[str, Any]] | None) -> bool:
     return False
 
 
+def _default_sequences() -> list[dict[str, Any]]:
+    """Pinball Scores, then Demtoberfest 2026."""
+    pinball_items = [
+        {"template_id": item["id"]}
+        for item in DEFAULT_TEMPLATES
+        if item.get("id") == LOCATION_ANNOUNCEMENT_ID or item.get("layout")
+    ]
+    return [
+        {
+            "id": PINBALL_SEQUENCE_ID,
+            "name": "Pinball Scores",
+            "description": (
+                "Location announcement, then each Stern game. "
+                "Play holds each board for 30 seconds."
+            ),
+            "sequence_version": 1,
+            "default_duration": PINBALL_DEFAULT_DURATION,
+            "items": pinball_items,
+        },
+        deepcopy(DEMTOBERFEST_SEQUENCE),
+    ]
+
+
+def _merge_sequences(
+    sequences: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], bool]:
+    """Insert missing built-in sequences and fill in any missing templates."""
+    changed = False
+    by_id = {item.get("id"): item for item in sequences}
+    merged = list(sequences)
+    for seed in _default_sequences():
+        existing = by_id.get(seed["id"])
+        if existing is None:
+            merged.append(deepcopy(seed))
+            by_id[seed["id"]] = merged[-1]
+            changed = True
+            continue
+        if int(existing.get("sequence_version") or 0) < int(seed["sequence_version"]):
+            existing["name"] = seed["name"]
+            existing["description"] = seed.get("description")
+            existing["items"] = deepcopy(seed["items"])
+            existing["sequence_version"] = seed["sequence_version"]
+            if "repeat_seconds" in seed:
+                existing["repeat_seconds"] = seed["repeat_seconds"]
+            else:
+                existing.pop("repeat_seconds", None)
+            if "default_duration" in seed:
+                existing["default_duration"] = seed["default_duration"]
+            else:
+                existing.pop("default_duration", None)
+            changed = True
+            continue
+        have = {item.get("template_id") for item in existing.get("items") or []}
+        for item in seed["items"]:
+            if item["template_id"] not in have:
+                existing.setdefault("items", []).append(deepcopy(item))
+                have.add(item["template_id"])
+                changed = True
+    return merged, changed
+
+
 def _sort_templates(templates: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Keep seeded templates in default order; custom ones follow alphabetically."""
     seed_order = {
@@ -343,22 +410,23 @@ def _sort_templates(templates: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return sorted(templates, key=sort_key)
 
 
-async def async_load_templates(hass: HomeAssistant) -> list[dict[str, Any]]:
-    """Load templates, seeding defaults and merging any missing built-ins."""
+async def async_load_library(
+    hass: HomeAssistant,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Load templates and display sequences, seeding anything missing."""
     store = async_get_store(hass)
     data = await store.async_load()
     if not data or not data.get("templates"):
         templates = deepcopy(DEFAULT_TEMPLATES)
-        await store.async_save({"templates": templates})
-        return templates
+        sequences = _default_sequences()
+        await store.async_save({"templates": templates, "sequences": sequences})
+        return templates, sequences
 
     templates = list(data.get("templates") or [])
     by_id = {item.get("id"): index for index, item in enumerate(templates)}
     changed = False
     seeded_game_ids = {
-        item["id"]
-        for item in DEFAULT_TEMPLATES
-        if item.get("id") != LOCATION_ANNOUNCEMENT_ID
+        item["id"] for item in DEFAULT_TEMPLATES if item.get("layout")
     }
     location_seed = deepcopy(_location_announcement_template())
 
@@ -396,6 +464,30 @@ async def async_load_templates(hass: HomeAssistant) -> list[dict[str, Any]]:
         if seed_copy["id"] == LOCATION_ANNOUNCEMENT_ID:
             continue  # handled above
         existing_index = by_id.get(seed_copy["id"])
+        if seed_copy.get("event_version"):
+            if existing_index is None:
+                templates.append(seed_copy)
+                by_id[seed_copy["id"]] = len(templates) - 1
+                changed = True
+            else:
+                existing = templates[existing_index]
+                if int(existing.get("event_version") or 0) < int(
+                    seed_copy["event_version"]
+                ):
+                    templates[existing_index] = {
+                        **existing,
+                        "name": seed_copy["name"],
+                        "props": seed_copy["props"],
+                        "vbml": seed_copy["vbml"],
+                        "animation": seed_copy.get("animation"),
+                        "event_version": seed_copy["event_version"],
+                        "updated_at": _utc_now_iso(),
+                    }
+                    if not seed_copy.get("animation"):
+                        templates[existing_index].pop("animation", None)
+                    changed = True
+            continue
+
         if existing_index is None:
             templates.append(seed_copy)
             by_id[seed_copy["id"]] = len(templates) - 1
@@ -438,17 +530,48 @@ async def async_load_templates(hass: HomeAssistant) -> list[dict[str, Any]]:
             }
             changed = True
 
+    sequences, sequences_changed = _merge_sequences(list(data.get("sequences") or []))
+    if sequences_changed:
+        changed = True
+
     templates = _sort_templates(templates)
     if changed:
-        await store.async_save({"templates": templates})
+        await store.async_save({"templates": templates, "sequences": sequences})
+    return templates, sequences
+
+
+async def async_load_templates(hass: HomeAssistant) -> list[dict[str, Any]]:
+    """Load templates, seeding defaults and merging any missing built-ins."""
+    templates, _sequences = await async_load_library(hass)
     return templates
+
+
+async def async_load_sequences(hass: HomeAssistant) -> list[dict[str, Any]]:
+    """Load display sequences, seeding Pinball Scores and Demtoberfest 2026."""
+    _templates, sequences = await async_load_library(hass)
+    return sequences
+
+
+async def async_get_sequence(
+    hass: HomeAssistant, sequence_id: str
+) -> dict[str, Any] | None:
+    """Return a display sequence by id or exact name."""
+    needle = sequence_id.strip()
+    for item in await async_load_sequences(hass):
+        if item.get("id") == needle or str(item.get("name", "")) == needle:
+            return item
+    return None
 
 
 async def async_save_templates(
     hass: HomeAssistant, templates: list[dict[str, Any]]
 ) -> None:
-    """Persist the full template list."""
-    await async_get_store(hass).async_save({"templates": templates})
+    """Persist templates without dropping display sequences."""
+    data = await async_get_store(hass).async_load() or {}
+    sequences = data.get("sequences") or _default_sequences()
+    await async_get_store(hass).async_save(
+        {"templates": templates, "sequences": sequences}
+    )
 
 
 async def async_upsert_template(
@@ -499,12 +622,20 @@ async def async_upsert_template(
 
 
 async def async_delete_template(hass: HomeAssistant, template_id: str) -> None:
-    """Delete a template by id."""
-    templates = await async_load_templates(hass)
+    """Delete a template by id and drop it from display sequences."""
+    templates, sequences = await async_load_library(hass)
     filtered = [item for item in templates if item.get("id") != template_id]
     if len(filtered) == len(templates):
         raise ValueError(f"Unknown template id: {template_id}")
-    await async_save_templates(hass, filtered)
+    for sequence in sequences:
+        sequence["items"] = [
+            item
+            for item in sequence.get("items") or []
+            if item.get("template_id") != template_id
+        ]
+    await async_get_store(hass).async_save(
+        {"templates": filtered, "sequences": sequences}
+    )
 
 
 async def async_get_template(
