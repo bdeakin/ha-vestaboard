@@ -54,12 +54,13 @@ from .demtoberfest import (
     ANIMATION_DIAGONAL_BLUE_WAVE,
     API_BLUE,
     API_WHITE,
-    CASCADE_RING_SECONDS,
+    CASCADE_BLUE_HOLD_SECONDS,
     CASCADE_SETTLE_SECONDS,
     CASCADE_STEP_INTERVAL_MS,
     CASCADE_STEP_SIZE,
+    CASCADE_STRATEGY,
     WAVE_ID,
-    diagonal_rings,
+    transition_seconds,
     solid_board,
 )
 from .game_art import build_reveal_frames
@@ -511,7 +512,7 @@ async def _write_cascade(
     *,
     strategy: str | None = None,
 ) -> None:
-    """Send one full board. Changed tiles flip together; nothing else moves."""
+    """Send one full board. Without a strategy only changed bits move."""
     payload: dict[str, Any] = {"characters": rows}
     if strategy:
         payload[CONF_STRATEGY] = strategy
@@ -521,31 +522,33 @@ async def _write_cascade(
 
 
 async def _play_diagonal_cascade(pairs: list[tuple[str, Any]]) -> None:
-    """Fill blue, then white, one expanding diagonal ring at a time.
+    """White, then a native sweep to blue, then a native sweep back to white.
 
-    Ring 0 is (0, 0). Ring 1 is (1, 0), (1, 1), and (0, 1). Each later ring
-    is the next square edge, ending at column 21. strategy "random" flips
-    only the tiles that changed. "diagonal" restarts the board's three-stage
-    wipe and is not used.
+    Three messages in all. The first is classic so only non-white bits move.
+    The other two use the board's own staggered strategy, and each wait lets
+    the transition land before the next message. Returns on white.
     """
-    rings = diagonal_rings()
-    board = solid_board(API_WHITE)
+    wait = transition_seconds()
     _LOGGER.info(
-        "Demtoberfest diagonal rings: %s rings, %ss between rings",
-        len(rings),
-        CASCADE_RING_SECONDS,
+        "Demtoberfest blue wave: %s, step_size %s, %sms, %.1fs per sweep",
+        CASCADE_STRATEGY,
+        CASCADE_STEP_SIZE,
+        CASCADE_STEP_INTERVAL_MS,
+        wait,
     )
     for _device_id, coordinator in pairs:
-        await _write_cascade(coordinator, board, strategy="random")
+        await _write_cascade(coordinator, solid_board(API_WHITE))
     await asyncio.sleep(CASCADE_SETTLE_SECONDS)
-    for color in (API_BLUE, API_WHITE):
-        for ring in rings:
-            for col, row in ring:
-                board[row][col] = color
-            frame = [row[:] for row in board]
-            for _device_id, coordinator in pairs:
-                await _write_cascade(coordinator, frame, strategy="random")
-            await asyncio.sleep(CASCADE_RING_SECONDS)
+    for _device_id, coordinator in pairs:
+        await _write_cascade(
+            coordinator, solid_board(API_BLUE), strategy=CASCADE_STRATEGY
+        )
+    await asyncio.sleep(wait + CASCADE_BLUE_HOLD_SECONDS)
+    for _device_id, coordinator in pairs:
+        await _write_cascade(
+            coordinator, solid_board(API_WHITE), strategy=CASCADE_STRATEGY
+        )
+    await asyncio.sleep(wait)
 
 
 async def _play_grids(
@@ -601,7 +604,7 @@ async def _present_template(
 
 
 async def async_deliver_wave(hass: HomeAssistant, call: ServiceCall) -> None:
-    """Play the expanding-diagonal cascade: white, then blue, then white."""
+    """Play the blue wave: white, then a sweep to blue, then back to white."""
     bypass = bool(call.data.get(CONF_BYPASS_QUIET_HOURS))
     pairs = await _coordinators_for_devices(hass, list(call.data[CONF_DEVICE_ID]), bypass)
     for _device_id, coordinator in pairs:

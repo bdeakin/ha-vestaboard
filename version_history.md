@@ -1,5 +1,11 @@
 # Version history
 
+## 0.8.7
+
+- The Demtoberfest blue wave is now three messages: all white with no strategy, then all blue and all white with the board's own `column` transition (`step_size` 1, `step_interval_ms` 200). The per-ring messages are gone; with any strategy every tile spins its reel on every message, so rings showed up as whole-board stages.
+- Each sweep waits about 14 seconds to land, and the wave returns only after the final white lands, so the next screen does not cut it off.
+- Timing is set by constants in `demtoberfest.py` (`CASCADE_STRATEGY`, `CASCADE_STEP_INTERVAL_MS`, `CASCADE_SPIN_SECONDS`, and others). The Demtoberfest sequence version is bumped so the saved description refreshes.
+
 ## 0.8.6
 
 - Stop sending `strategy: diagonal` for the Demtoberfest wave. On this board that wipe runs in three stages and spins tiles through other characters whenever a new message arrives.

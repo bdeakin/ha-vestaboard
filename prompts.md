@@ -48,7 +48,7 @@ Today's event, with the date on its own line below the title, and a blue square 
 
 ### 2. Blue wave
 
-The board starts on the white chip (character code 70). Blue then fills in expanding rings from the top left: `(0, 0)`, then `(1, 0) (1, 1) (0, 1)`, then `(2, 0) (2, 1) (2, 2) (1, 2) (0, 2)`, and so on through column 21. The same rings turn the board back to white. Each ring is one Local API message. The hardware `diagonal` strategy is not used: on this board it wipes in three stages and spins tiles through other characters. Changed tiles flip together (`strategy: random`, `step_size: 132`), with 1 second between rings so the previous flaps can finish.
+The board starts on the white chip (character code 70), sweeps to blue (67), then sweeps back to white, as one fluid transition each way. The exact pattern is open; the board's own transitions are preferred over many small messages. It is three Local API messages: all white with no strategy (only non-white tiles move), then all blue, then all white, each with `strategy: column`, `step_size: 1`, `step_interval_ms: 200`. Each sweep waits about 14 seconds so it lands before the next message. With a strategy every tile spins through its reel, so letters and colors flicker past during both sweeps.
 
 ### 3. Re-elect — 15 seconds
 

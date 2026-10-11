@@ -35,7 +35,7 @@ Saved templates store **prop bindings** (`entity_id` / Jinja), not score/player 
 
 Game templates also store an `intro` VBML (6×22 `rawCharacters` pixel art, ≥80% filled, 2+ colors). `send_template` animates the intro in top-left→bottom-right scan order over `intro_duration`, then transitions to the score board with a column wave. Pixel icons and per-game layouts live in `game_art.py`.
 
-House-event sequences such as Demtoberfest 2026 (specified in `prompts.md`) stay on these same paths. Static boards are `vestaboard.message` layouts held with `duration`. The blue wave posts one Local API message per expanding diagonal. It does not use `strategy: diagonal`, which on this board wipes in three stages and spins flaps through other characters.
+House-event sequences such as Demtoberfest 2026 (specified in `prompts.md`) stay on these same paths. Static boards are `vestaboard.message` layouts held with `duration`. The blue wave is three Local API messages and leans on the board's own `column` transition for the motion.
 
 ### Display sequences
 
@@ -46,7 +46,7 @@ A display sequence is an ordered list of saved templates. The Vestaboard-x panel
 | Pinball Scores | Location Announcement, then each Stern game |
 | Demtoberfest 2026 | Announcement, blue wave, re-elect, pinball, Instagram |
 
-`vestaboard.play_sequence` walks that list. Demtoberfest message screens hold for 15 seconds. The blue wave ignores the saved template grid. It paints the board white (character code 70), then turns on one expanding diagonal at a time: `(0, 0)`, then `(1, 0) (1, 1) (0, 1)`, then the next square edge, through `(21, 5)`. Those same rings return the board to white. Each ring is its own Local API message with `strategy: random` and `step_size` 132, so only the tiles in that ring move, and they move together. Rings are 1 second apart. The opening white waits 12 seconds because blank tiles have to travel the reel to reach the white chip. Blue is `67`. Demtoberfest can repeat every 15 minutes until `vestaboard.stop_sequence`. Both sequences are seeded into `vestaboard_templates` storage on integration startup, including installs that already have game templates. A newer `sequence_version` or `event_version` replaces the seeded Demtoberfest timing and wave preview.
+`vestaboard.play_sequence` walks that list. Demtoberfest message screens hold for 15 seconds. The blue wave ignores the saved template grid. It sends all white (character code 70) with no strategy, so only tiles that are not already white move, and waits 8 seconds. Then it sends all blue (`67`) and later all white, each with `strategy: column`, `step_size` 1, and `step_interval_ms` 200. Flaps only spin forward at about 14 a second, and with any strategy but classic every tile spins its reel even when unchanged, so one sweep takes about 4 seconds of stagger plus up to 7 seconds of spin. The board does not take a new message mid-transition, so each sweep waits `transition_seconds()` (about 14 seconds) and blue holds 2 more. The wave returns only after the final white lands, so the next sequence screen does not cut it off. The timing constants live in `demtoberfest.py`. Demtoberfest can repeat every 15 minutes until `vestaboard.stop_sequence`. Both sequences are seeded into `vestaboard_templates` storage on integration startup, including installs that already have game templates. A newer `sequence_version` or `event_version` replaces the seeded Demtoberfest timing and wave preview.
 
 ## Message composition
 

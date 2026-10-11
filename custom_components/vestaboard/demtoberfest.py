@@ -11,18 +11,26 @@ ANIMATION_DIAGONAL_BLUE_WAVE = "diagonal-blue-wave"
 # The white flap is 70; 69 is the black flap on this model.
 API_BLUE = 67
 API_WHITE = 70
-# Do not send strategy "diagonal". On this board that wipe runs in three
-# stages and spins every flap through the reel. "random" with step_size 132
-# starts every changed tile together and leaves the others still.
-CASCADE_STEP_INTERVAL_MS = 1
-CASCADE_STEP_SIZE = 132
-# Blank (0) to the white chip is a long spin. Rings then hop 70 -> 67.
-CASCADE_SETTLE_SECONDS = 12
-CASCADE_RING_SECONDS = 1.0
+# Bits only spin forward, about 14 flaps a second (a full reel is ~5.2 s).
+# With any strategy but classic, every bit spins through the reel, even
+# unchanged ones, and the board does not show a new message until the last
+# one lands. So the wave is two messages, all blue then all white, each with
+# a native stagger, and each wait covers the stagger plus one bit's spin.
+CASCADE_STRATEGY = "column"
+CASCADE_STEP_SIZE = 1
+CASCADE_STEP_INTERVAL_MS = 200
+# Steps in the strategy: columns for "column". Use 27 for "diagonal".
+CASCADE_STEPS = BOARD_COLS
+# White -> blue under a strategy is a full turn plus a short hop (~6 s seen).
+CASCADE_SPIN_SECONDS = 7.0
+CASCADE_MARGIN_SECONDS = 3.0
+# Classic reset to white first: only changed bits move, at most ~5 s.
+CASCADE_SETTLE_SECONDS = 8.0
+CASCADE_BLUE_HOLD_SECONDS = 2.0
 HOLD_SECONDS = 15
 REPEAT_SECONDS = 900
 EVENT_VERSION = 4
-SEQUENCE_VERSION = 4
+SEQUENCE_VERSION = 5
 
 ANNOUNCEMENT_ID = "demtoberfest-announcement"
 WAVE_ID = "demtoberfest-blue-wave"
@@ -39,25 +47,14 @@ def solid_board(code: int) -> list[list[int]]:
     return [[code for _ in range(BOARD_COLS)] for _ in range(BOARD_ROWS)]
 
 
-def diagonal_rings() -> list[list[tuple[int, int]]]:
-    """Expanding squares from (0, 0) toward (21, 5).
-
-    Ring d is every cell whose max(column, row) is d:
-    (0, 0), then (1, 0) (1, 1) (0, 1), then
-    (2, 0) (2, 1) (2, 2) (1, 2) (0, 2), and so on.
-    Past row 5 the ring is just the next column.
-    """
-    rings: list[list[tuple[int, int]]] = []
-    for distance in range(BOARD_COLS):
-        cells: list[tuple[int, int]] = []
-        last_row = min(distance, BOARD_ROWS - 1)
-        for row in range(last_row + 1):
-            cells.append((distance, row))
-        if distance < BOARD_ROWS:
-            for col in range(distance - 1, -1, -1):
-                cells.append((col, distance))
-        rings.append(cells)
-    return rings
+def transition_seconds() -> float:
+    """How long one staggered full-board transition needs to land."""
+    steps = -(-CASCADE_STEPS // CASCADE_STEP_SIZE)
+    return (
+        (steps - 1) * CASCADE_STEP_INTERVAL_MS / 1000
+        + CASCADE_SPIN_SECONDS
+        + CASCADE_MARGIN_SECONDS
+    )
 
 
 def _text(template: str, y: int) -> dict[str, Any]:
@@ -111,7 +108,7 @@ def _template(
 
 
 def _wave_template() -> dict[str, Any]:
-    """Store the all-blue midpoint. Playback uses the native diagonal strategy."""
+    """Store the all-blue midpoint. Playback is `_play_diagonal_cascade`."""
     preview = solid_board(API_BLUE)
     return {
         "id": WAVE_ID,
@@ -184,8 +181,8 @@ DEMTOBERFEST_SEQUENCE: dict[str, Any] = {
     "name": "Demtoberfest 2026",
     "description": (
         "House event for October 11, 2026. Message screens stay up for "
-        "15 seconds. The blue wave flips one expanding diagonal at a time, "
-        "without the board's diagonal wipe."
+        "15 seconds. The blue wave sweeps the board from white to blue and "
+        "back with the board's own transition."
     ),
     "sequence_version": SEQUENCE_VERSION,
     "repeat_seconds": REPEAT_SECONDS,
