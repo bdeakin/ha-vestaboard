@@ -48,7 +48,7 @@ Today's event, with the date on its own line below the title, and a blue square 
 
 ### 2. Blue wave
 
-The board is set entirely white (character code 70 on this white model), then the Local API plays its built-in `diagonal` transition to all blue, then the same transition back to all white. Each phase is one full-board message (`strategy: diagonal`, `step_interval_ms: 120`, `step_size: 1`). `step_size` 3 moved in three blocks, so the cascade now starts one tile at a time. The next message waits 20 seconds so the last tile can finish. The saved Blue wave template is only an editor preview; playback does not send that grid.
+The board starts white (character code 70). Blue then fills in expanding rings from the top left: `(0, 0)`, then `(1, 0) (1, 1) (0, 1)`, then `(2, 0) (2, 1) (2, 2) (1, 2) (0, 2)`, and so on through column 21. The same rings turn the board back to white. Each ring is one Local API message, 0.45 seconds apart. The native `diagonal` step size does not produce these groups.
 
 ### 3. Re-elect — 15 seconds
 

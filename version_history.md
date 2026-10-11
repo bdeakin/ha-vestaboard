@@ -1,5 +1,10 @@
 # Version history
 
+## 0.8.5
+
+- Fill the Demtoberfest blue wave one expanding diagonal at a time: `(0, 0)`, then `(1, 0) (1, 1) (0, 1)`, then the next square edge, through column 21, then back to white on the same path.
+- The native `diagonal` step size cannot make those groups, so each ring is its own Local API message.
+
 ## 0.8.4
 
 - Use character code 70 for the white cascade boards. This house Vestaboard is a white model, where 69 is the black flap.

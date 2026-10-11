@@ -11,17 +11,16 @@ ANIMATION_DIAGONAL_BLUE_WAVE = "diagonal-blue-wave"
 # The white flap is 70; 69 is the black flap on this model.
 API_BLUE = 67
 API_WHITE = 70
-# step_size 3 ran as three regions: top left, middle, bottom right.
-# 1 starts one tile at a time along the board's diagonal.
-# 132 steps at 120ms is about 16s before the last tile starts.
-CASCADE_STEP_INTERVAL_MS = 120
-CASCADE_STEP_SIZE = 1
+# Each ring is one Local API message. step_size covers the whole ring so
+# those tiles start together. The native diagonal step_size does not.
+CASCADE_STEP_INTERVAL_MS = 50
+CASCADE_STEP_SIZE = 132
 CASCADE_SETTLE_SECONDS = 5
-CASCADE_PHASE_SECONDS = 20
+CASCADE_RING_SECONDS = 0.45
 HOLD_SECONDS = 15
 REPEAT_SECONDS = 900
 EVENT_VERSION = 4
-SEQUENCE_VERSION = 2
+SEQUENCE_VERSION = 3
 
 ANNOUNCEMENT_ID = "demtoberfest-announcement"
 WAVE_ID = "demtoberfest-blue-wave"
@@ -36,6 +35,27 @@ def solid_board(code: int) -> list[list[int]]:
     if code == 0:
         raise ValueError("Blank is not a cascade color")
     return [[code for _ in range(BOARD_COLS)] for _ in range(BOARD_ROWS)]
+
+
+def diagonal_rings() -> list[list[tuple[int, int]]]:
+    """Expanding squares from (0, 0) toward (21, 5).
+
+    Ring d is every cell whose max(column, row) is d:
+    (0, 0), then (1, 0) (1, 1) (0, 1), then
+    (2, 0) (2, 1) (2, 2) (1, 2) (0, 2), and so on.
+    Past row 5 the ring is just the next column.
+    """
+    rings: list[list[tuple[int, int]]] = []
+    for distance in range(BOARD_COLS):
+        cells: list[tuple[int, int]] = []
+        last_row = min(distance, BOARD_ROWS - 1)
+        for row in range(last_row + 1):
+            cells.append((distance, row))
+        if distance < BOARD_ROWS:
+            for col in range(distance - 1, -1, -1):
+                cells.append((col, distance))
+        rings.append(cells)
+    return rings
 
 
 def _text(template: str, y: int) -> dict[str, Any]:
@@ -162,8 +182,8 @@ DEMTOBERFEST_SEQUENCE: dict[str, Any] = {
     "name": "Demtoberfest 2026",
     "description": (
         "House event for October 11, 2026. Message screens stay up for "
-        "15 seconds. The blue wave is the board's own diagonal cascade: "
-        "white to blue, then blue back to white."
+        "15 seconds. The blue wave fills by expanding diagonals from the "
+        "top left, then clears back to white along the same path."
     ),
     "sequence_version": SEQUENCE_VERSION,
     "repeat_seconds": REPEAT_SECONDS,
