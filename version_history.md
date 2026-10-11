@@ -1,5 +1,11 @@
 # Version history
 
+## 0.8.4
+
+- Use character code 70 for the white cascade boards. This house Vestaboard is a white model, where 69 is the black flap.
+- Step the native diagonal one tile at a time (`step_size` 1). `step_size` 3 moved the board in three regions. Wait 20 seconds between phases so the last tile can finish.
+- The saved Blue wave template stays an all-blue preview. Playback does not send that grid.
+
 ## 0.8.3
 
 - Play the Demtoberfest blue wave with the Local API `diagonal` strategy: all white, then all blue, then all white.

@@ -7,18 +7,17 @@ from typing import Any
 from .game_art import BOARD_COLS, BOARD_ROWS
 
 ANIMATION_DIAGONAL_BLUE_WAVE = "diagonal-blue-wave"
-# Local API codes for a black Vestaboard. A white-background board swaps
-# the white flap to 70; the player picks that from the device model.
+# This house board is a white-background Vestaboard. Blue stays 67.
+# The white flap is 70; 69 is the black flap on this model.
 API_BLUE = 67
-API_WHITE = 69
-API_WHITE_ON_WHITE_BOARD = 70
-# Initial Local API timings from the diagonal-cascade brief. Not yet
-# calibrated on hardware. step_size is passed through; its exact grouping
-# is whatever the board does with strategy "diagonal".
+API_WHITE = 70
+# step_size 3 ran as three regions: top left, middle, bottom right.
+# 1 starts one tile at a time along the board's diagonal.
+# 132 steps at 120ms is about 16s before the last tile starts.
 CASCADE_STEP_INTERVAL_MS = 120
-CASCADE_STEP_SIZE = 3
+CASCADE_STEP_SIZE = 1
 CASCADE_SETTLE_SECONDS = 5
-CASCADE_PHASE_SECONDS = 12
+CASCADE_PHASE_SECONDS = 20
 HOLD_SECONDS = 15
 REPEAT_SECONDS = 900
 EVENT_VERSION = 4

@@ -19,7 +19,6 @@ from .const import (
     ALIGN_CENTER,
     ALIGN_HORIZONTAL,
     ALIGN_VERTICAL,
-    COLOR_WHITE as MODEL_WHITE,
     CONF_ALIGN,
     CONF_ATTRIBUTE,
     CONF_BYPASS_QUIET_HOURS,
@@ -55,7 +54,6 @@ from .demtoberfest import (
     ANIMATION_DIAGONAL_BLUE_WAVE,
     API_BLUE,
     API_WHITE,
-    API_WHITE_ON_WHITE_BOARD,
     CASCADE_PHASE_SECONDS,
     CASCADE_SETTLE_SECONDS,
     CASCADE_STEP_INTERVAL_MS,
@@ -506,13 +504,6 @@ def _is_blue_wave(template: dict[str, Any]) -> bool:
     )
 
 
-def _cascade_white_code(coordinator) -> int:
-    """White flap code for this board. A white model uses 70, not 69."""
-    if getattr(coordinator, "model_color", None) == MODEL_WHITE:
-        return API_WHITE_ON_WHITE_BOARD
-    return API_WHITE
-
-
 async def _write_cascade(
     coordinator,
     rows: list[list[int]],
@@ -537,6 +528,7 @@ async def _play_diagonal_cascade(pairs: list[tuple[str, Any]]) -> None:
     completion times.
     """
     blue = solid_board(API_BLUE)
+    white = solid_board(API_WHITE)
     _LOGGER.info(
         "Demtoberfest diagonal cascade: settle %ss, step_size=%s, "
         "step_interval_ms=%s, %ss between phases",
@@ -546,15 +538,13 @@ async def _play_diagonal_cascade(pairs: list[tuple[str, Any]]) -> None:
         CASCADE_PHASE_SECONDS,
     )
     for _device_id, coordinator in pairs:
-        await _write_cascade(coordinator, solid_board(_cascade_white_code(coordinator)))
+        await _write_cascade(coordinator, white)
     await asyncio.sleep(CASCADE_SETTLE_SECONDS)
     for _device_id, coordinator in pairs:
         await _write_cascade(coordinator, blue, strategy="diagonal")
     await asyncio.sleep(CASCADE_PHASE_SECONDS)
     for _device_id, coordinator in pairs:
-        await _write_cascade(
-            coordinator, solid_board(_cascade_white_code(coordinator)), strategy="diagonal"
-        )
+        await _write_cascade(coordinator, white, strategy="diagonal")
     await asyncio.sleep(CASCADE_PHASE_SECONDS)
 
 
