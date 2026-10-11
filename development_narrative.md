@@ -51,3 +51,5 @@ Game boards each use a different layout (game name, player, score — no extra l
 The October 11 house event stays in this repo. Static screens are `vestaboard.message` layouts with a two-minute `duration`; the blue wave is a short run of full-board frames, the same multi-frame send game intros already use. The screen order, corner colors, diagonal wave rule, and 15-minute repeat are recorded in `prompts.md`.
 
 The panel now groups those boards into display sequences. **Pinball Scores** holds the location announcement and each game. **Demtoberfest 2026** holds the five event templates and is seeded into existing Home Assistant storage, so it shows up after a restart instead of living only in the notes.
+
+Message screens hold for 15 seconds. The blue wave is no longer a diagonal pixel. It is seven frames of a swell: calm water first, then the wave appears on the left and travels to the right, blue below the line and white above it.

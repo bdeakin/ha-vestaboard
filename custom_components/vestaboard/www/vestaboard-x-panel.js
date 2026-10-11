@@ -1252,7 +1252,7 @@ class VestaboardXPanel extends HTMLElement {
         </div>
         <p class="hint" style="margin-top:10px;">
           Click a template to edit it. <strong>Play sequence</strong> runs every template in order.
-          Demtoberfest message screens hold for 2 minutes and the blue wave plays once.
+          Demtoberfest message screens hold for 15 seconds. The blue wave appears on the left and moves right.
           Game boards still play their pixel-art intro, then the high-score layout.
         </p>
       </div>

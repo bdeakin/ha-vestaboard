@@ -30,9 +30,9 @@ Personal fork (**Vestaboard-x**) configured to display Stern Insider Connected p
 
 House event for October 11, 2026. This is the **Demtoberfest 2026** display sequence in the Vestaboard-x panel (the other sequence is **Pinball Scores**). Play the screens below in order on the Vestaboard, then start the sequence again every 15 minutes.
 
-The board is 6 rows by 22 columns. Letters display in uppercase. Blue is `{67}`. White is `{69}`. A two-minute hold is `duration: 120`.
+The board is 6 rows by 22 columns. Letters display in uppercase. Blue is `{67}`. White is `{69}`. Each message screen holds for 15 seconds (`duration: 15`).
 
-### 1. Announcement — 2 minutes
+### 1. Announcement — 15 seconds
 
 Today's event, with the date on its own line below the title, and a blue square in each corner.
 
@@ -48,15 +48,14 @@ Today's event, with the date on its own line below the title, and a blue square 
 
 ### 2. Blue wave
 
-A blue wave that starts in the top left and ends in the bottom right. The top left has turned white again as the middle turns blue. By the time the bottom right is blue, everything else is white.
+A filled swell, blue water below the line and white above it, moving from left to right in 7 steps.
 
-Play it as one diagonal at a time. On step `d` (from 0 through 26), cell `(x, y)` is blue only when `x + y = d`. Every other cell is white.
+- Step 0 is calm: one blue row along the bottom, white above. The swell is not on the board yet.
+- The next step is when the swell appears on the left.
+- A middle step is the crest in the center, with white still above the peak.
+- The last step is the swell on the right.
 
-- Step 0 is only the top-left cell, `(0, 0)`.
-- A middle step (the diagonal through the center) is blue while the top left is already white.
-- Step 26 is only the bottom-right cell, `(21, 5)`.
-
-### 3. Re-elect — 2 minutes
+### 3. Re-elect — 15 seconds
 
 "Re-elect Jon Crowley and Alyson Forbes", in an aesthetic layout. Keep the full wording, centered, with the names easy to read:
 
@@ -67,7 +66,7 @@ Play it as one diagonal at a time. On step `d` (from 0 through 26), cell `(x, y)
    AND ALYSON FORBES
 ```
 
-### 4. Pinball — 2 minutes
+### 4. Pinball — 15 seconds
 
 "More pinball in the basement" and, on a new line, "Watch your head going down the stairs".
 
@@ -79,7 +78,7 @@ Play it as one diagonal at a time. On step `d` (from 0 through 26), cell `(x, y)
 GOING DOWN THE STAIRS
 ```
 
-### 5. Instagram — 2 minutes
+### 5. Instagram — 15 seconds
 
 After the pinball message: "Follow @ahforward on Instagram".
 
@@ -90,4 +89,4 @@ After the pinball message: "Follow @ahforward on Instagram".
 
 ### Repeat
 
-Start this sequence every 15 minutes. Screens 1, 3, 4, and 5 each stay up for 2 minutes. The wave plays through once between the announcement and the re-elect screen.
+Start this sequence every 15 minutes. Screens 1, 3, 4, and 5 each stay up for 15 seconds. The wave plays through once between the announcement and the re-elect screen, appearing on the left and moving right.

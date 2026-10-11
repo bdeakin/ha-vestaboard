@@ -46,7 +46,7 @@ A display sequence is an ordered list of saved templates. The Vestaboard-x panel
 | Pinball Scores | Location Announcement, then each Stern game |
 | Demtoberfest 2026 | Announcement, blue wave, re-elect, pinball, Instagram |
 
-`vestaboard.play_sequence` walks that list. Message screens hold for the item's `duration` (120 seconds for Demtoberfest). The blue wave template (`animation: diagonal-blue-wave`) plays one diagonal at a time: on step `d`, cell `(x, y)` is blue only when `x + y = d`. Demtoberfest can repeat every 15 minutes until `vestaboard.stop_sequence`. Both sequences are seeded into `vestaboard_templates` storage on integration startup, including installs that already have game templates.
+`vestaboard.play_sequence` walks that list. Demtoberfest message screens hold for 15 seconds. The blue wave template plays 7 full-board frames: calm water, then a blue swell that appears on the left and moves right, with white above the water. Demtoberfest can repeat every 15 minutes until `vestaboard.stop_sequence`. Both sequences are seeded into `vestaboard_templates` storage on integration startup, including installs that already have game templates. A newer `sequence_version` or `event_version` replaces the seeded Demtoberfest timing and wave preview.
 
 ## Message composition
 

@@ -544,7 +544,7 @@ async def _present_template(
 
 
 async def async_deliver_wave(hass: HomeAssistant, call: ServiceCall) -> None:
-    """Play the diagonal blue wave once."""
+    """Play the left-to-right blue wave once."""
     frames = await hass.async_add_executor_job(build_diagonal_wave_frames)
     bypass = bool(call.data.get(CONF_BYPASS_QUIET_HOURS))
     pairs = await _coordinators_for_devices(hass, list(call.data[CONF_DEVICE_ID]), bypass)

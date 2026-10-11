@@ -1,5 +1,10 @@
 # Version history
 
+## 0.8.1
+
+- Demtoberfest message screens hold for 15 seconds instead of 2 minutes.
+- Replace the diagonal blue pixel with a 7-step swell. The first frame is calm water. The wave then appears on the left and moves right, blue below the line and white above it.
+
 ## 0.8.0
 
 - Add display sequences to the Vestaboard-x panel. A sequence is an ordered list of templates.
