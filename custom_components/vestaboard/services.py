@@ -19,6 +19,7 @@ from .const import (
     ALIGN_CENTER,
     ALIGN_HORIZONTAL,
     ALIGN_VERTICAL,
+    COLOR_WHITE as MODEL_WHITE,
     CONF_ALIGN,
     CONF_ATTRIBUTE,
     CONF_BYPASS_QUIET_HOURS,
@@ -52,9 +53,15 @@ from .const import (
 )
 from .demtoberfest import (
     ANIMATION_DIAGONAL_BLUE_WAVE,
-    WAVE_BIT_SECONDS,
+    API_BLUE,
+    API_WHITE,
+    API_WHITE_ON_WHITE_BOARD,
+    CASCADE_PHASE_SECONDS,
+    CASCADE_SETTLE_SECONDS,
+    CASCADE_STEP_INTERVAL_MS,
+    CASCADE_STEP_SIZE,
     WAVE_ID,
-    build_diagonal_wave_frames,
+    solid_board,
 )
 from .game_art import build_reveal_frames
 from .helpers import async_get_coordinator_by_device_id
@@ -492,25 +499,63 @@ async def _write_rows(coordinator, rows: list[list[int]], strategy: str) -> None
 
 
 def _is_blue_wave(template: dict[str, Any]) -> bool:
-    """True for the Demtoberfest bit sweep, even if an older save dropped the flag."""
+    """True for the Demtoberfest cascade, even if an older save dropped the flag."""
     return (
         template.get("animation") == ANIMATION_DIAGONAL_BLUE_WAVE
         or template.get("id") == WAVE_ID
     )
 
 
-async def _play_character_frames(
-    pairs: list[tuple[str, Any]],
-    frames: list[list[list[int]]],
-    bit_seconds: float,
+def _cascade_white_code(coordinator) -> int:
+    """White flap code for this board. A white model uses 70, not 69."""
+    if getattr(coordinator, "model_color", None) == MODEL_WHITE:
+        return API_WHITE_ON_WHITE_BOARD
+    return API_WHITE
+
+
+async def _write_cascade(
+    coordinator,
+    rows: list[list[int]],
+    *,
+    strategy: str | None = None,
 ) -> None:
-    """Write character grids directly so each bit change reaches the board."""
-    last = len(frames) - 1
-    for index, grid in enumerate(frames):
-        for _device_id, coordinator in pairs:
-            await _write_rows(coordinator, grid, "classic")
-        if index < last:
-            await asyncio.sleep(bit_seconds)
+    """Send one full board. Omit strategy on the opening white so classic is not used."""
+    payload: dict[str, Any] = {"characters": rows}
+    if strategy:
+        payload[CONF_STRATEGY] = strategy
+        payload[CONF_STEP_SIZE] = CASCADE_STEP_SIZE
+        payload[CONF_STEP_INTERVAL_MS] = CASCADE_STEP_INTERVAL_MS
+    await coordinator.write_and_update_state(payload)
+
+
+async def _play_diagonal_cascade(pairs: list[tuple[str, Any]]) -> None:
+    """Two native diagonal messages: white to blue, then blue back to white.
+
+    The opening white board is sent with no transition. Each cascade then waits
+    CASCADE_PHASE_SECONDS so the next message does not start while flaps are
+    still moving. Those waits are the brief's initial values, not measured
+    completion times.
+    """
+    blue = solid_board(API_BLUE)
+    _LOGGER.info(
+        "Demtoberfest diagonal cascade: settle %ss, step_size=%s, "
+        "step_interval_ms=%s, %ss between phases",
+        CASCADE_SETTLE_SECONDS,
+        CASCADE_STEP_SIZE,
+        CASCADE_STEP_INTERVAL_MS,
+        CASCADE_PHASE_SECONDS,
+    )
+    for _device_id, coordinator in pairs:
+        await _write_cascade(coordinator, solid_board(_cascade_white_code(coordinator)))
+    await asyncio.sleep(CASCADE_SETTLE_SECONDS)
+    for _device_id, coordinator in pairs:
+        await _write_cascade(coordinator, blue, strategy="diagonal")
+    await asyncio.sleep(CASCADE_PHASE_SECONDS)
+    for _device_id, coordinator in pairs:
+        await _write_cascade(
+            coordinator, solid_board(_cascade_white_code(coordinator)), strategy="diagonal"
+        )
+    await asyncio.sleep(CASCADE_PHASE_SECONDS)
 
 
 async def _play_grids(
@@ -543,8 +588,7 @@ async def _present_template(
 ) -> None:
     """Show one sequence template without scheduling a revert."""
     if _is_blue_wave(template):
-        frames = await hass.async_add_executor_job(build_diagonal_wave_frames)
-        await _play_character_frames(pairs, frames, WAVE_BIT_SECONDS)
+        await _play_diagonal_cascade(pairs)
         return
 
     intro = template.get("intro")
@@ -567,15 +611,14 @@ async def _present_template(
 
 
 async def async_deliver_wave(hass: HomeAssistant, call: ServiceCall) -> None:
-    """Play the top-left to bottom-right blue fill, then clear it back to white."""
-    frames = await hass.async_add_executor_job(build_diagonal_wave_frames)
+    """Play the native diagonal cascade: white, then blue, then white."""
     bypass = bool(call.data.get(CONF_BYPASS_QUIET_HOURS))
     pairs = await _coordinators_for_devices(hass, list(call.data[CONF_DEVICE_ID]), bypass)
     for _device_id, coordinator in pairs:
         _cancel_temporary(coordinator)
     if not pairs:
         return
-    await _play_character_frames(pairs, frames, WAVE_BIT_SECONDS)
+    await _play_diagonal_cascade(pairs)
     duration = call.data.get(CONF_DURATION)
     for _device_id, coordinator in pairs:
         if duration:

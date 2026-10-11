@@ -231,7 +231,7 @@ class VestaboardXPanel extends HTMLElement {
       (template && template.animation === "diagonal-blue-wave") ||
       (template && template.id === "demtoberfest-blue-wave")
     ) {
-      return "about 2 minutes";
+      return "diagonal cascade";
     }
     if (item && item.duration === 120) return "2 minutes";
     if (item && item.duration) return `${item.duration} seconds`;
@@ -1257,7 +1257,7 @@ class VestaboardXPanel extends HTMLElement {
         </div>
         <p class="hint" style="margin-top:10px;">
           Click a template to edit it. <strong>Play sequence</strong> runs every template in order.
-          Demtoberfest message screens hold for 15 seconds. The blue wave starts white, fills blue from the top left to the bottom right, then clears back to white.
+          Demtoberfest message screens hold for 15 seconds. The blue wave is the board's diagonal transition: white to blue, then blue back to white.
           Game boards still play their pixel-art intro, then the high-score layout.
         </p>
       </div>

@@ -4,14 +4,24 @@ from __future__ import annotations
 
 from typing import Any
 
-from .game_art import BOARD_COLS, BOARD_ROWS, COLOR_BLUE, COLOR_WHITE
+from .game_art import BOARD_COLS, BOARD_ROWS
 
 ANIMATION_DIAGONAL_BLUE_WAVE = "diagonal-blue-wave"
-# One changed bit per step. 264 steps at this pace runs a little over two minutes.
-WAVE_BIT_SECONDS = 0.5
+# Local API codes for a black Vestaboard. A white-background board swaps
+# the white flap to 70; the player picks that from the device model.
+API_BLUE = 67
+API_WHITE = 69
+API_WHITE_ON_WHITE_BOARD = 70
+# Initial Local API timings from the diagonal-cascade brief. Not yet
+# calibrated on hardware. step_size is passed through; its exact grouping
+# is whatever the board does with strategy "diagonal".
+CASCADE_STEP_INTERVAL_MS = 120
+CASCADE_STEP_SIZE = 3
+CASCADE_SETTLE_SECONDS = 5
+CASCADE_PHASE_SECONDS = 12
 HOLD_SECONDS = 15
 REPEAT_SECONDS = 900
-EVENT_VERSION = 3
+EVENT_VERSION = 4
 SEQUENCE_VERSION = 2
 
 ANNOUNCEMENT_ID = "demtoberfest-announcement"
@@ -22,39 +32,11 @@ INSTAGRAM_ID = "demtoberfest-instagram"
 SEQUENCE_ID = "demtoberfest-2026"
 
 
-def _copy_board(board: list[list[int]]) -> list[list[int]]:
-    return [row[:] for row in board]
-
-
-def _radiate_cells() -> list[tuple[int, int]]:
-    """Top-left toward bottom-right, one bit at a time, downward along each diagonal."""
-    cells: list[tuple[int, int]] = []
-    for diagonal in range(BOARD_COLS + BOARD_ROWS - 1):
-        for y in range(BOARD_ROWS):
-            x = diagonal - y
-            if 0 <= x < BOARD_COLS:
-                cells.append((x, y))
-    return cells
-
-
-def build_diagonal_wave_frames() -> list[list[list[int]]]:
-    """White, then blue fills toward the bottom right, then white follows.
-
-    The board starts entirely white. Bits flip to blue one at a time, starting
-    at the top left and radiating down each diagonal toward the bottom right.
-    Once the board is blue, the top-left bit turns white again and white
-    radiates along the same path until the board is white.
-    """
-    cells = _radiate_cells()
-    board = [[COLOR_WHITE for _ in range(BOARD_COLS)] for _ in range(BOARD_ROWS)]
-    frames = [_copy_board(board)]
-    for x, y in cells:
-        board[y][x] = COLOR_BLUE
-        frames.append(_copy_board(board))
-    for x, y in cells:
-        board[y][x] = COLOR_WHITE
-        frames.append(_copy_board(board))
-    return frames
+def solid_board(code: int) -> list[list[int]]:
+    """A full 6×22 board of one character code. Never uses blank (0)."""
+    if code == 0:
+        raise ValueError("Blank is not a cascade color")
+    return [[code for _ in range(BOARD_COLS)] for _ in range(BOARD_ROWS)]
 
 
 def _text(template: str, y: int) -> dict[str, Any]:
@@ -108,8 +90,8 @@ def _template(
 
 
 def _wave_template() -> dict[str, Any]:
-    """Store a mid-fill frame for the editor. Playback builds every bit."""
-    preview = build_diagonal_wave_frames()[66]
+    """Store the all-blue midpoint. Playback uses the native diagonal strategy."""
+    preview = solid_board(API_BLUE)
     return {
         "id": WAVE_ID,
         "name": "Blue wave",
@@ -181,7 +163,8 @@ DEMTOBERFEST_SEQUENCE: dict[str, Any] = {
     "name": "Demtoberfest 2026",
     "description": (
         "House event for October 11, 2026. Message screens stay up for "
-        "15 seconds. The blue wave fills from the top left, then clears back to white."
+        "15 seconds. The blue wave is the board's own diagonal cascade: "
+        "white to blue, then blue back to white."
     ),
     "sequence_version": SEQUENCE_VERSION,
     "repeat_seconds": REPEAT_SECONDS,

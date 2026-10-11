@@ -1,5 +1,10 @@
 # Version history
 
+## 0.8.3
+
+- Play the Demtoberfest blue wave with the Local API `diagonal` strategy: all white, then all blue, then all white.
+- Stop sending the bit-by-bit frame loop. The board animates the cascade itself (`step_interval_ms` 120, `step_size` 3). The 5-second settle and 12-second phase waits are initial values, not measured flap times.
+
 ## 0.8.2
 
 - Replace the blue swell with a bit-by-bit sweep. The board starts white, turns blue from the top left toward the bottom right, then turns white again along the same path.

@@ -48,7 +48,7 @@ Today's event, with the date on its own line below the title, and a blue square 
 
 ### 2. Blue wave
 
-Starts as a completely white board. Bits then flip from white to blue one at a time, beginning at the top left and radiating down each diagonal toward the bottom right, until the board is blue. The top-left bit turns white again, and white radiates along the same path until the board is white. The sweep takes at least 60 seconds.
+The board is set entirely white, then the Local API plays its built-in `diagonal` transition to all blue, then the same transition back to all white. Each phase is one full-board message (`strategy: diagonal`, `step_interval_ms: 120`, `step_size: 3`). The second message waits 12 seconds after the first HTTP response, and the next screen waits another 12 seconds, so the flaps can finish. Those timings are the initial test values and have not been measured on the hardware. Do not send blank (`0`) or a series of partial frames.
 
 ### 3. Re-elect — 15 seconds
 
