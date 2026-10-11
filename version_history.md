@@ -1,5 +1,10 @@
 # Version history
 
+## 0.7.2
+
+- Record the Demtoberfest 2026 sequence in `prompts.md`: announcement, diagonal blue wave, re-elect, pinball, and Instagram screens, repeating every 15 minutes.
+- Static holds use existing `vestaboard.message` layouts with `duration: 120`. The wave uses the same full-board frame send as game intros.
+
 ## 0.7.1
 
 - Rebuilt game intro art: dense multi-color pixel scenes (≥80% board coverage) with TL→BR scan reveal animation before each score board.

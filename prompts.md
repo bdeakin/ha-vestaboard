@@ -25,3 +25,69 @@ Personal fork (**Vestaboard-x**) configured to display Stern Insider Connected p
 - Live character-count validation against model width/height in the UI.
 - Re-merge selected upstream releases on a regular cadence.
 - Keep HACS installable without requiring GitHub Release zip assets unless/until a release pipeline is maintained on the fork.
+
+## Demtoberfest 2026
+
+House event for October 11, 2026. Play the screens below in order on the Vestaboard, then start the sequence again every 15 minutes.
+
+The board is 6 rows by 22 columns. Letters display in uppercase. Blue is `{67}`. White is `{69}`. A two-minute hold is `duration: 120`.
+
+### 1. Announcement — 2 minutes
+
+Today's event, with the date on its own line below the title, and a blue square in each corner.
+
+```
+{67}                    {67}
+
+      DEMTOBERFEST
+
+   OCTOBER 11TH, 2026
+
+{67}                    {67}
+```
+
+### 2. Blue wave
+
+A blue wave that starts in the top left and ends in the bottom right. The top left has turned white again as the middle turns blue. By the time the bottom right is blue, everything else is white.
+
+Play it as one diagonal at a time. On step `d` (from 0 through 26), cell `(x, y)` is blue only when `x + y = d`. Every other cell is white.
+
+- Step 0 is only the top-left cell, `(0, 0)`.
+- A middle step (the diagonal through the center) is blue while the top left is already white.
+- Step 26 is only the bottom-right cell, `(21, 5)`.
+
+### 3. Re-elect — 2 minutes
+
+"Re-elect Jon Crowley and Alyson Forbes", in an aesthetic layout. Keep the full wording, centered, with the names easy to read:
+
+```
+        RE-ELECT
+
+      JON CROWLEY
+   AND ALYSON FORBES
+```
+
+### 4. Pinball — 2 minutes
+
+"More pinball in the basement" and, on a new line, "Watch your head going down the stairs".
+
+```
+    MORE PINBALL IN
+     THE BASEMENT
+
+    WATCH YOUR HEAD
+GOING DOWN THE STAIRS
+```
+
+### 5. Instagram — 2 minutes
+
+After the pinball message: "Follow @ahforward on Instagram".
+
+```
+   FOLLOW @AHFORWARD
+     ON INSTAGRAM
+```
+
+### Repeat
+
+Start this sequence every 15 minutes. Screens 1, 3, 4, and 5 each stay up for 2 minutes. The wave plays through once between the announcement and the re-elect screen.

@@ -35,6 +35,8 @@ Saved templates store **prop bindings** (`entity_id` / Jinja), not score/player 
 
 Game templates also store an `intro` VBML (6×22 `rawCharacters` pixel art, ≥80% filled, 2+ colors). `send_template` animates the intro in top-left→bottom-right scan order over `intro_duration`, then transitions to the score board with a column wave. Pixel icons and per-game layouts live in `game_art.py`.
 
+House-event sequences such as Demtoberfest 2026 (specified in `prompts.md`) stay on these same paths. Static boards are `vestaboard.message` layouts held with `duration`. A short animation such as the blue wave is a run of full-board frames, the same kind of multi-frame send the game intros already use.
+
 ## Message composition
 
 | Source | When used | Notes |

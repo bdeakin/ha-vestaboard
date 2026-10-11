@@ -45,3 +45,7 @@ Added a rainbow **Location Announcement** template in the Vestaboard welcome-boa
 Leaderboard templates stay dynamic: each send re-resolves entity/Jinja props from live sensors. Editor preview values in `vbml.props` are snapshots only and are cleared on save so they are not mistaken for frozen scores. Location Announcement is migrated to always include the `location` entity prop if it was missing from an earlier save.
 
 Game boards each use a different layout (game name, player, score — no extra labels) and a dense thematic pixel-art intro (≥80% board, 2+ colors) revealed top-left to bottom-right before the score via `send_template`.
+
+## Demtoberfest 2026
+
+The October 11 house event stays in this repo. Static screens are `vestaboard.message` layouts with a two-minute `duration`; the blue wave is a short run of full-board frames, the same multi-frame send game intros already use. The screen order, corner colors, diagonal wave rule, and 15-minute repeat are recorded in `prompts.md`.
