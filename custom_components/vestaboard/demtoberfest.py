@@ -2,23 +2,17 @@
 
 from __future__ import annotations
 
-import math
 from typing import Any
 
 from .game_art import BOARD_COLS, BOARD_ROWS, COLOR_BLUE, COLOR_WHITE
 
 ANIMATION_DIAGONAL_BLUE_WAVE = "diagonal-blue-wave"
-# Seven shapes, about two seconds apart, so the swell reads as motion.
-WAVE_SECONDS = 14
+# One changed bit per step. 264 steps at this pace runs a little over two minutes.
+WAVE_BIT_SECONDS = 0.5
 HOLD_SECONDS = 15
 REPEAT_SECONDS = 900
-EVENT_VERSION = 2
+EVENT_VERSION = 3
 SEQUENCE_VERSION = 2
-# Crest x positions. The first is off the left edge, so step 0 is calm
-# water. The swell then appears on the left and travels off the right.
-_WAVE_CRESTS = (-18.0, -4.0, 1.0, 6.5, 11.0, 16.0, 21.5)
-_WAVE_SIGMA = 4.4
-_WAVE_AMPLITUDE = 4.0
 
 ANNOUNCEMENT_ID = "demtoberfest-announcement"
 WAVE_ID = "demtoberfest-blue-wave"
@@ -28,27 +22,38 @@ INSTAGRAM_ID = "demtoberfest-instagram"
 SEQUENCE_ID = "demtoberfest-2026"
 
 
-def _wave_height(x: int, crest: float) -> int:
-    """Blue rows from the bottom. One row is calm water; five is a crest."""
-    hump = math.exp(-((x - crest) ** 2) / (2 * _WAVE_SIGMA ** 2))
-    return max(1, min(5, int(round(1 + _WAVE_AMPLITUDE * hump))))
+def _copy_board(board: list[list[int]]) -> list[list[int]]:
+    return [row[:] for row in board]
+
+
+def _radiate_cells() -> list[tuple[int, int]]:
+    """Top-left toward bottom-right, one bit at a time, downward along each diagonal."""
+    cells: list[tuple[int, int]] = []
+    for diagonal in range(BOARD_COLS + BOARD_ROWS - 1):
+        for y in range(BOARD_ROWS):
+            x = diagonal - y
+            if 0 <= x < BOARD_COLS:
+                cells.append((x, y))
+    return cells
 
 
 def build_diagonal_wave_frames() -> list[list[list[int]]]:
-    """Seven full-board frames of a swell moving left to right.
+    """White, then blue fills toward the bottom right, then white follows.
 
-    Step 0 is calm: one blue row along the bottom, white above it.
-    The swell appears on the left on the next step, crosses the center,
-    and finishes on the right. Blue is the water. White is everything above it.
+    The board starts entirely white. Bits flip to blue one at a time, starting
+    at the top left and radiating down each diagonal toward the bottom right.
+    Once the board is blue, the top-left bit turns white again and white
+    radiates along the same path until the board is white.
     """
-    frames: list[list[list[int]]] = []
-    for crest in _WAVE_CRESTS:
-        board = [[COLOR_WHITE for _ in range(BOARD_COLS)] for _ in range(BOARD_ROWS)]
-        for x in range(BOARD_COLS):
-            height = _wave_height(x, crest)
-            for y in range(BOARD_ROWS - height, BOARD_ROWS):
-                board[y][x] = COLOR_BLUE
-        frames.append(board)
+    cells = _radiate_cells()
+    board = [[COLOR_WHITE for _ in range(BOARD_COLS)] for _ in range(BOARD_ROWS)]
+    frames = [_copy_board(board)]
+    for x, y in cells:
+        board[y][x] = COLOR_BLUE
+        frames.append(_copy_board(board))
+    for x, y in cells:
+        board[y][x] = COLOR_WHITE
+        frames.append(_copy_board(board))
     return frames
 
 
@@ -103,8 +108,8 @@ def _template(
 
 
 def _wave_template() -> dict[str, Any]:
-    """Store the center crest for the editor. Playback builds every step."""
-    preview = build_diagonal_wave_frames()[3]
+    """Store a mid-fill frame for the editor. Playback builds every bit."""
+    preview = build_diagonal_wave_frames()[66]
     return {
         "id": WAVE_ID,
         "name": "Blue wave",
@@ -176,7 +181,7 @@ DEMTOBERFEST_SEQUENCE: dict[str, Any] = {
     "name": "Demtoberfest 2026",
     "description": (
         "House event for October 11, 2026. Message screens stay up for "
-        "15 seconds. The blue wave appears on the left and moves right."
+        "15 seconds. The blue wave fills from the top left, then clears back to white."
     ),
     "sequence_version": SEQUENCE_VERSION,
     "repeat_seconds": REPEAT_SECONDS,

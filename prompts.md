@@ -48,12 +48,7 @@ Today's event, with the date on its own line below the title, and a blue square 
 
 ### 2. Blue wave
 
-A filled swell, blue water below the line and white above it, moving from left to right in 7 steps.
-
-- Step 0 is calm: one blue row along the bottom, white above. The swell is not on the board yet.
-- The next step is when the swell appears on the left.
-- A middle step is the crest in the center, with white still above the peak.
-- The last step is the swell on the right.
+Starts as a completely white board. Bits then flip from white to blue one at a time, beginning at the top left and radiating down each diagonal toward the bottom right, until the board is blue. The top-left bit turns white again, and white radiates along the same path until the board is white. The sweep takes at least 60 seconds.
 
 ### 3. Re-elect — 15 seconds
 
@@ -89,4 +84,4 @@ After the pinball message: "Follow @ahforward on Instagram".
 
 ### Repeat
 
-Start this sequence every 15 minutes. Screens 1, 3, 4, and 5 each stay up for 15 seconds. The wave plays through once between the announcement and the re-elect screen, appearing on the left and moving right.
+Start this sequence every 15 minutes. Screens 1, 3, 4, and 5 each stay up for 15 seconds. The wave plays through once between the announcement and the re-elect screen: white, then blue radiating from the top left to the bottom right, then white following until the board is white again.

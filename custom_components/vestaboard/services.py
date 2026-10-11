@@ -52,7 +52,8 @@ from .const import (
 )
 from .demtoberfest import (
     ANIMATION_DIAGONAL_BLUE_WAVE,
-    WAVE_SECONDS,
+    WAVE_BIT_SECONDS,
+    WAVE_ID,
     build_diagonal_wave_frames,
 )
 from .game_art import build_reveal_frames
@@ -490,6 +491,28 @@ async def _write_rows(coordinator, rows: list[list[int]], strategy: str) -> None
     )
 
 
+def _is_blue_wave(template: dict[str, Any]) -> bool:
+    """True for the Demtoberfest bit sweep, even if an older save dropped the flag."""
+    return (
+        template.get("animation") == ANIMATION_DIAGONAL_BLUE_WAVE
+        or template.get("id") == WAVE_ID
+    )
+
+
+async def _play_character_frames(
+    pairs: list[tuple[str, Any]],
+    frames: list[list[list[int]]],
+    bit_seconds: float,
+) -> None:
+    """Write character grids directly so each bit change reaches the board."""
+    last = len(frames) - 1
+    for index, grid in enumerate(frames):
+        for _device_id, coordinator in pairs:
+            await _write_rows(coordinator, grid, "classic")
+        if index < last:
+            await asyncio.sleep(bit_seconds)
+
+
 async def _play_grids(
     pairs: list[tuple[str, Any]],
     grids: list[list[list[int]]],
@@ -519,9 +542,9 @@ async def _present_template(
     hass: HomeAssistant, pairs: list[tuple[str, Any]], template: dict[str, Any]
 ) -> None:
     """Show one sequence template without scheduling a revert."""
-    if template.get("animation") == ANIMATION_DIAGONAL_BLUE_WAVE:
+    if _is_blue_wave(template):
         frames = await hass.async_add_executor_job(build_diagonal_wave_frames)
-        await _play_grids(pairs, frames, WAVE_SECONDS)
+        await _play_character_frames(pairs, frames, WAVE_BIT_SECONDS)
         return
 
     intro = template.get("intro")
@@ -544,7 +567,7 @@ async def _present_template(
 
 
 async def async_deliver_wave(hass: HomeAssistant, call: ServiceCall) -> None:
-    """Play the left-to-right blue wave once."""
+    """Play the top-left to bottom-right blue fill, then clear it back to white."""
     frames = await hass.async_add_executor_job(build_diagonal_wave_frames)
     bypass = bool(call.data.get(CONF_BYPASS_QUIET_HOURS))
     pairs = await _coordinators_for_devices(hass, list(call.data[CONF_DEVICE_ID]), bypass)
@@ -552,7 +575,7 @@ async def async_deliver_wave(hass: HomeAssistant, call: ServiceCall) -> None:
         _cancel_temporary(coordinator)
     if not pairs:
         return
-    await _play_grids(pairs, frames, WAVE_SECONDS)
+    await _play_character_frames(pairs, frames, WAVE_BIT_SECONDS)
     duration = call.data.get(CONF_DURATION)
     for _device_id, coordinator in pairs:
         if duration:
@@ -629,7 +652,7 @@ async def _run_display_sequence(
                 duration = item.get(CONF_DURATION)
                 if (
                     duration is None
-                    and template.get("animation") != ANIMATION_DIAGONAL_BLUE_WAVE
+                    and not _is_blue_wave(template)
                 ):
                     duration = sequence.get("default_duration")
                 if duration:
@@ -863,7 +886,7 @@ def async_setup_services(hass: HomeAssistant) -> None:
             hass, list(saved.get(CONF_PROPS) or [])
         )
 
-        if saved.get("animation") == ANIMATION_DIAGONAL_BLUE_WAVE:
+        if _is_blue_wave(saved):
             await async_deliver_wave(hass, call)
             return
 

@@ -1,5 +1,10 @@
 # Version history
 
+## 0.8.2
+
+- Replace the blue swell with a bit-by-bit sweep. The board starts white, turns blue from the top left toward the bottom right, then turns white again along the same path.
+- The sweep runs for at least 60 seconds and is written as character grids so each bit change is sent to the board.
+
 ## 0.8.1
 
 - Demtoberfest message screens hold for 15 seconds instead of 2 minutes.
